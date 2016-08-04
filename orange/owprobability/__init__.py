@@ -20,7 +20,7 @@ ID = "orange.widgets.probability"
 
 DESCRIPTION = "Probability distributions and visualization."
 
-BACKGROUND = "B9FFB3"
+BACKGROUND = "#C2FFC4"
 
 ICON = "icons/Category-Probability.svg"
 
