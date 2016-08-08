@@ -59,6 +59,9 @@ class OWHistPlot(widget.OWWidget):
     # calcuated histogram
     dataHist = Table()
     
+    # Plot Options
+    opt_stacked = settings.Setting(False)
+    
     graph_name = 'histogram'
     
     def __init__(self):
@@ -101,13 +104,19 @@ class OWHistPlot(widget.OWWidget):
 
         #gui.rubber(sbin.box)
         
+        #group selection
         groupbox = gui.vBox(self.controlArea, "Group By")
         self.groupVarView = gui.comboBox(groupbox, self, 'idx_group',
                                   label='',
                                   orientation='horizontal',
                                   callback=self.on_selection,
-                                  sendSelectedValue=True)        
-        
+                                  sendSelectedValue=True)
+                                  
+        #plot options for columns
+        plotbox = gui.vBox(self.controlArea, "Plot Options")
+        self.cbStacked = gui.checkBox(plotbox,self, 'opt_stacked',
+                                      label='Stack Groups',
+                                      callback=self.replot)
         #fill from bottom to widgets
         gui.rubber(self.controlArea)
         
@@ -274,6 +283,9 @@ class OWHistPlot(widget.OWWidget):
             yAxis_gridLineColor = 'rgba(0,0,0,0.25)',
             yAxis_gridZIndex = 0,
             yAxis_title_text = 'Frequency')
+        
+        if self.opt_stacked:
+            kwargs['plotOptions_column_stacking']='normal'
         
         #if self.indicies.is_discrete:
         kwargs['xAxis_categories']=np.around(self.countlabels,decimals=2)
