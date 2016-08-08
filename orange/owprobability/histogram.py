@@ -15,6 +15,8 @@ from scipy import stats
 from Orange.data import Table
 from Orange.widgets import gui, settings, widget, highcharts
 
+from PyQt4 import QtGui
+
 class Histplot(highcharts.Highchart):
     """
     Histplot extends Highchart and just defines some sane defaults:
@@ -153,6 +155,8 @@ class OWHistPlot(widget.OWWidget):
             if var.is_primitive():
                 self.countVarView.addItem(gui.attributeIconDict[var], var.name)
                 
+        
+                
         #Populate groupVarView
         self.groupVarModel = \
             ["(None)"] + [var for var in data.domain if var.is_discrete]
@@ -213,7 +217,12 @@ class OWHistPlot(widget.OWWidget):
                 #calculate group histogram
                 count,indicies=np.histogram(tdata,bins=indicies)
                 self.histData.append(count)
-
+            
+            
+            #sort out colours
+            colors = self.data.domain[self.idx_group].colors
+            colors = [QtGui.QColor(*c) for c in colors]
+            self.colors = [i.name() for i in colors]
                                           
         #correct labels for centre of bin            
         self.countlabels = np.zeros(len(self.count))
@@ -227,10 +236,6 @@ class OWHistPlot(widget.OWWidget):
             self.attr_binsize=np.around(self.indicies[1]-self.indicies[0],decimals=3)
         else:
             self.attr_binsize=0
-
-
-
-            
 
     def replot(self):
     
@@ -252,7 +257,8 @@ class OWHistPlot(widget.OWWidget):
             i=2
             for var in self.histData[2:]:
                 options['series'].append(dict(data=var,
-                                              name=self.histSeriesNames[i]))
+                                              name=self.histSeriesNames[i],
+                                              color=self.colors[i-2]))
                 i+=1
             
             
