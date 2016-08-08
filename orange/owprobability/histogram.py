@@ -28,7 +28,7 @@ class Histplot(highcharts.Highchart):
         super().__init__(enable_zoom=True,
                          enable_select='x',
                          chart_type='column',
-                         chart_margin = [100,100,100,100],
+                         #chart_margin = [100,100,100,100],
                          chart_legend_enabled = False,
                          chart_credit_enabled = False,
                          selection_callback=selection_callback,
@@ -56,6 +56,9 @@ class OWHistPlot(widget.OWWidget):
     # Selected discrete variable to colour charts by (stacked or adjacent)
     idx_group = settings.Setting('')
     
+    # calcuated histogram
+    dataHist = Table()
+    
     graph_name = 'histogram'
     
     def __init__(self):
@@ -67,6 +70,8 @@ class OWHistPlot(widget.OWWidget):
         self.binsize = 0
         self.n_selected = 0
         self.series_rows = []
+        self.histData = []
+        self.histSeriesNames = []
         self.binDet = 'nbins'
         #Create the UI controls for selecting axes attributes
         #Select the Variable to Plot
@@ -142,7 +147,7 @@ class OWHistPlot(widget.OWWidget):
         #Populate groupVarView
         self.groupVarModel = \
             ["(None)"] + [var for var in data.domain if var.is_discrete]
-        self.groupVarView.addItem("(None)")
+        self.groupVarView.addItem("(None)"); self.idx_group="(None)"
         for var in self.groupVarModel[1:]:
             self.groupVarView.addItem(gui.attributeIconDict[var], var.name)
         if data.domain.has_discrete_class:
@@ -174,8 +179,39 @@ class OWHistPlot(widget.OWWidget):
             self.attr_nbin = int((maxVal-minVal)/float(self.attr_binsize))+1
 
         #calculate the simple histogram
-        self.count,self.indicies=np.histogram(self.data[:,self.idx_count],
+        self.histData = []
+        self.histSeriesNames = []
+        count,indicies=np.histogram(self.data[:,self.idx_count],
                                           bins=self.attr_nbin)
+        
+        self.count=count; self.indicies=indicies
+                                          
+        #correct labels for centre of bin            
+        countlabels = np.zeros(len(count))
+        for i in range(0,len(count)):
+            countlabels[i]=indicies[i]+self.binsize/2  
+                                          
+        self.histData.append(countlabels); self.histData.append(count)
+        self.histSeriesNames.append('Mid Points')        
+        self.histSeriesNames.append('Total')        
+                                          
+        if self.idx_group != "(None)":
+            y = self.data[:, self.data.domain[self.idx_group]].Y.ravel()
+            for yval, yname in enumerate(self.data.domain[self.idx_group].values):
+                self.histSeriesNames.append(yname)
+                #get the rows for the current selected attribute
+                tdata = self.data[(y == yval),self.idx_count]
+                #calculate group histogram
+                count,indicies=np.histogram(tdata,bins=indicies)
+                self.histData.append(count)
+
+                                          
+        #correct labels for centre of bin            
+        self.countlabels = np.zeros(len(self.count))
+        for i in range(0,len(self.count)):
+            self.countlabels[i]=self.indicies[i]+self.binsize/2                                          
+        #self.dataHist.from_numpy()
+            
     
         #calculate size of bins from histrogram outputs        
         if len(self.indicies) >= 2:
@@ -184,10 +220,7 @@ class OWHistPlot(widget.OWWidget):
             self.attr_binsize=0
 
 
-        #correct labels for centre of bin            
-        self.countlabels = np.zeros(len(self.count))
-        for i in range(0,len(self.count)):
-            self.countlabels[i]=self.indicies[i]+self.binsize/2
+
             
 
     def replot(self):
@@ -202,9 +235,20 @@ class OWHistPlot(widget.OWWidget):
         # to options Object Highcharts JS uses in its examples. All keys are
         # **exactly the same** as for Highcharts JS.
         options = dict(series=[])
-        options['series'].append(dict(data=self.count,name=self.idx_count))
+
+        #Plot by group or not by group        
+        if self.idx_group == "(None)":
+            options['series'].append(dict(data=self.count,name=self.idx_count))
+        else:
+            i=2
+            for var in self.histData[2:]:
+                options['series'].append(dict(data=var,
+                                              name=self.histSeriesNames[i]))
+                i+=1
+            
+            
         kwargs = dict(
-            chart_margin = [100,25,50,50],
+            chart_margin = [100,25,80,50],
             title_text = 'Histogram',
             title_x = 25,
             tooltip_crosshairs = True,
@@ -217,7 +261,7 @@ class OWHistPlot(widget.OWWidget):
             plotOptions_series_minPointLength = 2,
             plotOptions_series_pointPadding = 0,
             plotOptions_series_groupPadding = 0,
-            plotOptions_series_borderWidth = 0.5,
+            plotOptions_series_borderWidth = 1,
             plotOptions_series_borderColor = 'rgba(255,255,255,0.5)',
             xAxis_labels_format = '{value:.2f}',
             #xAxis_title_text = 'Test',
@@ -248,7 +292,6 @@ class OWHistPlot(widget.OWWidget):
         self._setup()
         self.replot()
         return
-        
         
     def on_selection(self):
         self._setup()
