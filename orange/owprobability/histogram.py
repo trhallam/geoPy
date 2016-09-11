@@ -88,21 +88,21 @@ class OWHistPlot(widget.OWWidget):
                                 sendSelectedValue=True)
 
         #Select the Number of bins in the histogram plot
-        binbox = gui.vBox(self.controlArea, "Bin Parameters")
+        self.binbox = gui.vBox(self.controlArea, "Bin Parameters")
+        
         cWW = 75 #control widget width same for all menus
-        sbin = gui.spin(binbox, self, 'attr_nbin', minv=1, maxv=100, 
+        sbin = gui.spin(self.binbox, self, 'attr_nbin', minv=1, maxv=100, 
                         label = "N (1-100)",
                         controlWidth=cWW,
                         callback=self._on_set_nbins)
         #specify the size of the bins manually
-        lbin = gui.lineEdit(binbox, self, 'attr_binsize', 
+        lbin = gui.lineEdit(self.binbox, self, 'attr_binsize', 
                             label = "Bin Size",
                             orientation = gui.Qt.Horizontal,
                             controlWidth=cWW,
                             callback=self._on_set_binsize)
         sbin.setAlignment(gui.Qt.AlignCenter)
         lbin.setAlignment(gui.Qt.AlignCenter)
-
 
         #gui.rubber(sbin.box)
         
@@ -183,13 +183,22 @@ class OWHistPlot(widget.OWWidget):
         if self.data is None or not self.idx_count:
             # Sanity checks failed; nothing to do
             return
-
-        if self.binDet == 'binsize':
-            #calculate histogram based on required binsize
-            minVal = np.min(self.data[:,self.idx_count])
-            maxVal = np.max(self.data[:,self.idx_count])
-            print(type(minVal),type(maxVal),maxVal-minVal,type(self.attr_binsize))
-            self.attr_nbin = int((maxVal-minVal)/float(self.attr_binsize))+1
+            
+        #check if discrete values or not
+        if self.data.domain[self.idx_count].is_discrete:
+            #turn off interactive bin controls
+            self.binbox.setDisabled(True)
+            #number of discrete values in selected discrete class
+            self.attr_nbin = len(self.data.domain[self.idx_count].values)
+        else:
+            #turn on interactive bin controls
+            self.binbox.setDisabled(False)
+            
+            if self.binDet == 'binsize':
+                #calculate histogram based on required binsize
+                minVal = np.min(self.data[:,self.idx_count])
+                maxVal = np.max(self.data[:,self.idx_count])
+                self.attr_nbin = int((maxVal-minVal)/float(self.attr_binsize))+1
 
         #calculate the simple histogram
         self.histData = []
@@ -223,12 +232,17 @@ class OWHistPlot(widget.OWWidget):
             colors = self.data.domain[self.idx_group].colors
             colors = [QtGui.QColor(*c) for c in colors]
             self.colors = [i.name() for i in colors]
-                                          
-        #correct labels for centre of bin            
-        self.countlabels = np.zeros(len(self.count))
-        for i in range(0,len(self.count)):
-            self.countlabels[i]=self.indicies[i]+self.binsize/2                                          
-        #self.dataHist.from_numpy()
+        
+        #Test whether counted variable is discrete
+        if self.data.domain[self.idx_count].is_discrete:
+            #Data is discrete
+            self.countlabels=self.data.domain[self.idx_count].values
+        else:
+            #correct labels for centre of bin            
+            self.countlabels = np.zeros(len(self.count))
+            for i in range(0,len(self.count)):
+                self.countlabels[i]=self.indicies[i]+self.binsize/2                                          
+            #self.dataHist.from_numpy()
             
     
         #calculate size of bins from histrogram outputs        
@@ -278,7 +292,6 @@ class OWHistPlot(widget.OWWidget):
             plotOptions_series_groupPadding = 0,
             plotOptions_series_borderWidth = 1,
             plotOptions_series_borderColor = 'rgba(255,255,255,0.5)',
-            xAxis_labels_format = '{value:.2f}',
             #xAxis_title_text = 'Test',
             #xAxis_linkedTo = 0,
             xAxis_gridLineWidth = 0.5,
@@ -294,10 +307,14 @@ class OWHistPlot(widget.OWWidget):
             kwargs['plotOptions_column_stacking']='normal'
         
         #if self.indicies.is_discrete:
-        kwargs['xAxis_categories']=np.around(self.countlabels,decimals=2)
+        if self.data.domain[self.idx_count].is_discrete:
+            kwargs['xAxis_categories']=self.countlabels
+        else:
+            kwargs['xAxis_categories']=np.around(self.countlabels,decimals=2)
+            kwargs['xAxis_labels_format'] = '{value:.2f}'
         
 #        self.hist.chart(options,javascript=self.hello(), **kwargs)           
-#        self.hist.chart(options,javascript_after=self.hello(), **kwargs)           
+#        self.hist.chart(options,javascript_after=self.hello(), **kwargs)  
         self.hist.chart(options, **kwargs)           
 
     def _on_set_nbins(self):
