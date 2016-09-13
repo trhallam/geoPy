@@ -21,7 +21,8 @@ class returnOptions(QtCore.QObject):
 
         #Special JS Functions to load for interaction.
         jScripts = ['returns',
-                    'dir']
+                    'dir',
+                    'test']
         self.jsFunc=''
         for script in jScripts:
             scriptPath = os.path.join(__location__,script)+'.js'
@@ -41,7 +42,7 @@ class returnOptions(QtCore.QObject):
         return json.dumps(jsobj)
         
     # dump messages from JS to Python Console for debugging
-    @QtCore.pyqtSlot(str)
+    @QtCore.pyqtSlot()#result=str)
     def consoleDump(self, message):
         print( message)
     

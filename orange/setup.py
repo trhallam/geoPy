@@ -25,4 +25,5 @@ setup(name="Probability",
       classifiers=["Example :: Invalid"],
       # Declare owprobability package to contain widgets for the "Probability" category
       entry_points={"orange.widgets": "Probability = owprobability"},
+	  version='0.0.1',
       )

@@ -9,13 +9,18 @@ Created on Fri Aug  5 18:31:43 2016
 
 from itertools import chain
 
+import json
+
 import numpy as np
 from scipy import stats
 
 from Orange.data import Table
 from Orange.widgets import gui, settings, widget, highcharts
 
+import _highcharts.returns as hcReturns
+
 from PyQt4 import QtGui
+import PyQt4.QtCore as QtCore
 
 class Histplot(highcharts.Highchart):
     """
@@ -35,6 +40,25 @@ class Histplot(highcharts.Highchart):
                          chart_credit_enabled = False,
                          selection_callback=selection_callback,
                          **kwargs)
+                         
+        #add the Highcharts Return Options so charts can be preserved                         
+        self.hcAPI = hcReturns.returnOptions()
+        self.frame.addToJavaScriptWindowObject('hcAPI',self.hcAPI)
+        self.hcAPI._excJSFunc(self.frame)
+        
+        self.frame.evaluateJavaScript("var x = []; x['a']=2; x['b']='hello';")
+        test=self.frame.evaluateJavaScript("hcAPI.json_encode(x);")
+        test2=json.loads(test)
+        
+        print(test)  
+        print(test2['a'])
+        print(test2['b'])      
+        #x=self.frame.evaluateJavaScript("dir(hcAPI);")
+        x=self.frame.evaluateJavaScript("dir(hcAPI);")
+        self.frame.evaluateJavaScript("returnJS.test2();")
+        y=self.frame.evaluateJavaScript("dir(returnJS);")
+        print(x)
+        print(y)
                          
 class OWHistPlot(widget.OWWidget):
     """Histogram plot visualisation using Highcharts"""
@@ -297,8 +321,17 @@ class OWHistPlot(widget.OWWidget):
         kwargs['xAxis_categories']=np.around(self.countlabels,decimals=2)
         
 #        self.hist.chart(options,javascript=self.hello(), **kwargs)           
-#        self.hist.chart(options,javascript_after=self.hello(), **kwargs)           
-        self.hist.chart(options, **kwargs)           
+        #self.hist.chart(options,javascript_after="pybridge['hello']='world'", **kwargs)           
+        self.hist.chart(options, **kwargs)
+        print(self.hist.frame.evaluateJavaScript("dir(chart);"))
+       # print(self.hist.frame.evaluateJavaScript("chart.series;"))
+        print(self.hist.frame.evaluateJavaScript("returnJS.getLegendSelectedSeries(chart);"))
+        
+#    def getHCStatus(self):
+#        '''
+#        Find out whether series are turned on or off.
+#        '''
+#        self.hist.evalJS()
 
     def _on_set_nbins(self):
         self.binDet = 'nbins'
@@ -335,11 +368,14 @@ class OWHistPlot(widget.OWWidget):
         #reset import attributes
         self.attr_nbin = 10
         self.attr_binsize = 0
+        
 
 def main():
     from PyQt4.QtGui import QApplication
     app = QApplication([])
+#    print(dir(app))
     ow = OWHistPlot()
+#    print(dir(ow))
     data = Table("iris")
     ow.set_data(data)
     ow.show()
