@@ -28,9 +28,9 @@ class Scatterplot(highcharts.Highchart):
     """
     def __init__(self, selection_callback, **kwargs):
         super().__init__(enable_zoom=True,
-                         enable_select='xy+',
+                         #enable_select='xy+',
                          chart_type='scatter',
-                         selection_callback=selection_callback,
+                         #selection_callback=selection_callback,
                          **kwargs)
 
 
