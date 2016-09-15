@@ -141,8 +141,11 @@ class OWScatterPlot(widget.OWWidget):
         for attr in (attr_x, attr_y):
             subset = data[:, attr]
             cols.append(subset.Y if subset.Y.size else subset.X)
+            
+        print(cols)
         # ... that's our X here
         X = np.column_stack(cols)
+        print(X)
 
         # Highcharts point selection returns indexes of selected points per
         # each input series. Thus we should maintain a "map" of such indices
@@ -182,6 +185,7 @@ class OWScatterPlot(widget.OWWidget):
         # as a categorical
         if attr_x.is_discrete:
             kwargs['xAxis_categories'] = attr_x.values
+            print( attr_x.values)
         if attr_y.is_discrete:
             kwargs['yAxis_categories'] = attr_y.values
 
