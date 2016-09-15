@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 """
 Created on Fri Aug  5 18:31:43 2016
+
 @author: tony
 """
 
 """A histogram plot using Highcharts"""
 
-from itertools import chain
 
 import json
 
@@ -44,26 +44,27 @@ class Histplot(highcharts.Highchart):
         self.hcAPI = hcReturns.returnOptions()
         self.frame.addToJavaScriptWindowObject('hcAPI',self.hcAPI)
         self.hcAPI._excJSFunc(self.frame)
-        
-        self.frame.evaluateJavaScript("var x = []; x['a']=2; x['b']='hello';")
-        test=self.frame.evaluateJavaScript("hcAPI.json_encode(x);")
-        test2=json.loads(test)
-        
-        print(test)  
-        print(test2['a'])
-        print(test2['b'])      
-        #x=self.frame.evaluateJavaScript("dir(hcAPI);")
-        x=self.frame.evaluateJavaScript("dir(hcAPI);")
-        self.frame.evaluateJavaScript("returnJS.test2();")
-        y=self.frame.evaluateJavaScript("dir(returnJS);")
-        print(x)
-        print(y)
+
+#        java script testing
+#        
+#        self.frame.evaluateJavaScript("var x = []; x['a']=2; x['b']='hello';")
+#        test=self.frame.evaluateJavaScript("hcAPI.json_encode(x);")
+#        test2=json.loads(test)
+#        
+#        x=self.frame.evaluateJavaScript("dir(hcAPI);")
+#        x=self.frame.evaluateJavaScript("dir(hcAPI);")
+#        self.frame.evaluateJavaScript("returnJS.test2();")
+#        y=self.frame.evaluateJavaScript("dir(returnJS);")
+#        print(x)
+#        print(y)
                          
 class OWHistPlot(widget.OWWidget):
     """Histogram plot visualisation using Highcharts"""
     name = 'Histogram'
     description = 'Histogram Visualisation for data.'
     icon = "icons/Histogram.svg"
+    
+    none="(None)"
     
     inputs = [("Data", Table, "set_data")]
     outputs = [("Selected Data", Table)]
@@ -86,6 +87,7 @@ class OWHistPlot(widget.OWWidget):
     
     # Plot Options
     opt_stacked = settings.Setting(False)
+    opt_dist = settings.Setting(none)
     
     graph_name = 'histogram'
     
@@ -111,14 +113,14 @@ class OWHistPlot(widget.OWWidget):
                                 sendSelectedValue=True)
 
         #Select the Number of bins in the histogram plot
-        binbox = gui.vBox(self.controlArea, "Bin Parameters")
+        self.binbox = gui.vBox(self.controlArea, "Bin Parameters")
         cWW = 75 #control widget width same for all menus
-        sbin = gui.spin(binbox, self, 'attr_nbin', minv=1, maxv=100, 
+        sbin = gui.spin(self.binbox, self, 'attr_nbin', minv=1, maxv=100, 
                         label = "N (1-100)",
                         controlWidth=cWW,
                         callback=self._on_set_nbins)
         #specify the size of the bins manually
-        lbin = gui.lineEdit(binbox, self, 'attr_binsize', 
+        lbin = gui.lineEdit(self.binbox, self, 'attr_binsize', 
                             label = "Bin Size",
                             orientation = gui.Qt.Horizontal,
                             controlWidth=cWW,
@@ -132,16 +134,21 @@ class OWHistPlot(widget.OWWidget):
         #group selection
         groupbox = gui.vBox(self.controlArea, "Group By")
         self.groupVarView = gui.comboBox(groupbox, self, 'idx_group',
-                                  label='',
-                                  orientation='horizontal',
-                                  callback=self.on_selection,
-                                  sendSelectedValue=True)
+                                         label='',
+                                         orientation='horizontal',
+                                         callback=self.on_selection,
+                                         sendSelectedValue=True)
                                   
         #plot options for columns
         plotbox = gui.vBox(self.controlArea, "Plot Options")
-        self.cbStacked = gui.checkBox(plotbox,self, 'opt_stacked',
+        self.cbStacked = gui.checkBox(plotbox, self, 'opt_stacked',
                                       label='Stack Groups',
-                                      callback=self.replot)
+                                      callback=self.update)
+                                      
+        self.distVarView = gui.comboBox(plotbox, self, 'opt_dist',
+                                        label='Distribution',
+                                        callback=self.update,
+                                        sendSelectedValue=True)
         #fill from bottom to widgets
         gui.rubber(self.controlArea)
         
@@ -152,8 +159,7 @@ class OWHistPlot(widget.OWWidget):
         self.hist = Histplot(selection_callback=self.on_selection,
                                    xAxis_gridLineWidth=0.1,
                                    yAxis_gridLineWidth=0,
-                                   title_text='Histogram',
-                                   tooltip_shared=False)
+                                   title_text='Histogram')
                                    # In development, we can enable debug mode
                                    # and get right-click-inspect and related
                                    # console utils available:
@@ -161,7 +167,6 @@ class OWHistPlot(widget.OWWidget):
         # Just render an empty chart so it shows a nice 'No data to display'
         # warning
         self.hist.chart()
-
         self.mainArea.layout().addWidget(self.hist)
 
     def set_data(self, data):
@@ -169,26 +174,29 @@ class OWHistPlot(widget.OWWidget):
         Initial setup and distribution of data for widget.
         '''
         self.data = data
-        
         self.clear() #clear the chart
-
 
         #Populate countVarView        
         for var in data.domain if data is not None else []:
             if var.is_primitive():
                 self.countVarView.addItem(gui.attributeIconDict[var], var.name)
                 
-        
-                
         #Populate groupVarView
         self.groupVarModel = \
-            ["(None)"] + [var for var in data.domain if var.is_discrete]
-        self.groupVarView.addItem("(None)"); self.idx_group="(None)"
+            [self.none] + [var for var in data.domain if var.is_discrete]
+        self.groupVarView.addItem(self.none); self.idx_group=self.none
         for var in self.groupVarModel[1:]:
             self.groupVarView.addItem(gui.attributeIconDict[var], var.name)
         if data.domain.has_discrete_class:
             self.groupvar_idx = \
                 self.groupVarModel[1:].index(data.domain.class_var) + 1
+                
+        #Distribution Models
+        self.distVarModel = [self.none] + ["Normal", "LogNormal"]
+        self.distVarView.addItem(self.none)
+        for var in self.distVarModel[1:]:
+            self.distVarView.addItem(var)
+        #self.opt_dist=self.none
         
         if data is None:
             self.hist.clear()
@@ -206,13 +214,21 @@ class OWHistPlot(widget.OWWidget):
         if self.data is None or not self.idx_count:
             # Sanity checks failed; nothing to do
             return
-
-        if self.binDet == 'binsize':
-            #calculate histogram based on required binsize
-            minVal = np.min(self.data[:,self.idx_count])
-            maxVal = np.max(self.data[:,self.idx_count])
-            print(type(minVal),type(maxVal),maxVal-minVal,type(self.attr_binsize))
-            self.attr_nbin = int((maxVal-minVal)/float(self.attr_binsize))+1
+            
+        #check if discrete values or not
+        if self.data.domain[self.idx_count].is_discrete:
+            #turn off interactive bin controls
+            self.binbox.setDisabled(True)
+            #number of discrete values in selected discrete class
+            self.attr_nbin = len(self.data.domain[self.idx_count].values)
+        else:
+            #turn on interactive bin controls
+            self.binbox.setDisabled(False)
+            if self.binDet == 'binsize':
+                #calculate histogram based on required binsize
+                 minVal = np.min(self.data[:,self.idx_count])
+                 maxVal = np.max(self.data[:,self.idx_count])
+                 self.attr_nbin = int((maxVal-minVal)/float(self.attr_binsize))+1
 
         #calculate the simple histogram
         self.histData = []
@@ -247,12 +263,16 @@ class OWHistPlot(widget.OWWidget):
             colors = [QtGui.QColor(*c) for c in colors]
             self.colors = [i.name() for i in colors]
                                           
-        #correct labels for centre of bin            
-        self.countlabels = np.zeros(len(self.count))
-        for i in range(0,len(self.count)):
-            self.countlabels[i]=self.indicies[i]+self.binsize/2                                          
-        #self.dataHist.from_numpy()
-            
+        #Test whether counted variable is discrete
+        if self.data.domain[self.idx_count].is_discrete:
+            #Data is discrete
+            self.countlabels=self.data.domain[self.idx_count].values
+        else:
+            #correct labels for centre of bin            
+            self.countlabels = np.zeros(len(self.count))
+            for i in range(0,len(self.count)):
+                self.countlabels[i]=self.indicies[i]+self.binsize/2                                          
+                self.countlabels[i]=self.indicies[i]+self.binsize/2
     
         #calculate size of bins from histrogram outputs        
         if len(self.indicies) >= 2:
@@ -261,7 +281,7 @@ class OWHistPlot(widget.OWWidget):
             self.attr_binsize=0
 
     def replot(self):
-    
+        
         if self.data is None or not self.idx_count:
             # Sanity checks failed; nothing to do
             return   
@@ -276,55 +296,111 @@ class OWHistPlot(widget.OWWidget):
         #Plot by group or not by group        
         if self.idx_group == "(None)":
             options['series'].append(dict(data=self.count,name=self.idx_count))
+            print (self.idx_count)
         else:
             i=2
             for var in self.histData[2:]:
                 options['series'].append(dict(data=var,
                                               name=self.histSeriesNames[i],
                                               color=self.colors[i-2]))
+                print (self.histSeriesNames[i])
                 i+=1
-            
+                
             
         kwargs = dict(
-            chart_margin = [100,25,80,50],
+            chart_margin = [100,50,80,50],
             title_text = 'Histogram',
             title_x = 25,
-            tooltip_crosshairs = True,
-            tooltip_formatter = '''/**/(function() {
-                                return ('<b>' + this.y +
-                                '</b> points <br> in bin: <b>' +
-                                (this.x - %.2f) + '</b>-<b>' +
-                                (this.x + %.2f) + '</b>');})
-                                '''%(rbsize2,rbsize2),
             plotOptions_series_minPointLength = 2,
             plotOptions_series_pointPadding = 0,
             plotOptions_series_groupPadding = 0,
             plotOptions_series_borderWidth = 1,
             plotOptions_series_borderColor = 'rgba(255,255,255,0.5)',
-            xAxis_labels_format = '{value:.2f}',
-            #xAxis_title_text = 'Test',
-            #xAxis_linkedTo = 0,
             xAxis_gridLineWidth = 0.5,
             xAxis_gridLineColor = 'rgba(0,0,0,0.25)',
-            xAxis_gridZIndex = 8,
-            yAxis_maxPadding = 0,
-            yAxis_gridLineWidth = 0.5,
-            yAxis_gridLineColor = 'rgba(0,0,0,0.25)',
-            yAxis_gridZIndex = 0,
-            yAxis_title_text = 'Frequency')
+            xAxis_gridZIndex = 8)
         
         if self.opt_stacked:
             kwargs['plotOptions_column_stacking']='normal'
         
         #if self.indicies.is_discrete:
-        kwargs['xAxis_categories']=np.around(self.countlabels,decimals=2)
+        if self.data.domain[self.idx_count].is_discrete:
+            kwargs['xAxis_categories']=self.countlabels
+        else:
+            kwargs['xAxis_categories']=np.around(self.countlabels,decimals=2)
+            kwargs['xAxis_labels_format'] = '{value:.2f}'
+            
+        options['yAxis'] = [{'title' : {'text' : 'Frequency'},
+                             'maxPadding' : 0,
+                             'gridLineWidth' : 0.5,
+                             'gridLineColor' : 'rgba(0,0,0,0.25)',
+                             'gridZIndex' : 0},
+
+                            {'title' : {'text' : 'Probability'},
+                             'minPadding' : 0, 'maxPadding' : 0,
+                             'opposite' : True,
+                             'max' : 1, 'min' : 0}]
+            
+        #test distribution
+        #if self.opt_dist == "Normal":
+        if self.distVarView.currentText() != "(None)":
+            #Normal Distribution            
+            if self.distVarView.currentText() == "Normal":
+                #fit the data
+                mu, std = stats.norm.fit(self.data[:,self.idx_count])
+                #calculate the x values
+                x = np.linspace(self.countlabels[0],self.countlabels[-1],20)
+                #calculate x values that match the histogram column space
+                xcol = np.linspace(0,self.attr_nbin,20)
+                #calculate the normal distribution curve
+                distr = stats.norm.pdf(x, mu, std)
+                surv = stats.norm.sf(x, mu, std)
+                #add to the chart
+                options['series'].append(dict(data=np.column_stack([xcol,distr]),
+                                              name='Normal Distribution',
+                                              #marker = {enabled : False},
+                                              lineWidth = 3,
+                                              #xAxis = 1,
+                                              yAxis = 1,
+                                              color = 'black',
+                                              showInLegend=False))#,
+                                              
+                #Chart Type cannot be added via options due to special type name
+                options['series'][-1]['type']='scatter'
+                options['series'][-1]['id']='normal'
+                options['series'][-1]['marker']=dict(radius=3)
+                
+                #add survival series
+                options['series'].append(dict(data=np.column_stack([xcol,surv]),
+                                              name='surv',
+                                              yAxis = 1,
+                                              visible=False,
+                                              showInLegend=False))
+                options['series'][-1]['type']='scatter'
+                options['series'][-1]['id']='surv'
+               
+        options['tooltip']={
+            'animation' : False,
+            'formatter': '''/**/(function() {
+                var text = '';
+                if(this.series.name == 'Normal Distribution') {
+                    text = this.x.toFixed(2) + ' ' + 
+                           this.y.toFixed(2) + ' ';                
+                }
+                    text = 'Hello ';
+                        
+                return text; })'''}#%(rbsize2,rbsize2)}
         
+#        '<b>' + this.y +
+#                        '</b> points <br> in bin: <b>' +
+#                       (this.x - %.2f) + '</b>-<b>' +
+#                       (this.x + %.2f) + '</b>';
 #        self.hist.chart(options,javascript=self.hello(), **kwargs)           
-        #self.hist.chart(options,javascript_after="pybridge['hello']='world'", **kwargs)           
+#        self.hist.chart(options,javascript_after="pybridge['hello']='world'", **kwargs)           
         self.hist.chart(options, **kwargs)
-        print(self.hist.frame.evaluateJavaScript("dir(chart);"))
-       # print(self.hist.frame.evaluateJavaScript("chart.series;"))
-        print(self.hist.frame.evaluateJavaScript("returnJS.getLegendSelectedSeries(chart);"))
+#        print(self.hist.frame.evaluateJavaScript("dir(chart);"))
+#        print(self.hist.frame.evaluateJavaScript("chart.series;"))
+#        print(self.hist.frame.evaluateJavaScript("returnJS.getLegendSelectedSeries(chart);"))
         
 #    def getHCStatus(self):
 #        '''
@@ -353,7 +429,10 @@ class OWHistPlot(widget.OWWidget):
                   
     def send_report(self):
         self.report_data('Data', self.data)
-        self.report_raw('Histogram', self.scatter.svg())  
+        self.report_raw('Histogram', self.scatter.svg())
+        
+    def update(self):   
+        self.replot()
         
     def clear(self):
         '''
