@@ -60,6 +60,9 @@ class structFluid(object):
             self.rho = self.rho + fsat * fld
         self.K = 1.0 / self.K
 
+    def updateSat(self, sat):
+        self.sats = sat; self.mixfluids()
+
 
 class structDryFrame(object):
     """
@@ -111,6 +114,7 @@ class structDryFrame(object):
         self.vstress = vsgrad*depth
         self.peffi = self.vstress - initp #effective initial pressure
         self.peff = self.vstress - resp   #effective current pressure
+        self.mod = [Ek,Pk,Eg,Pg]
 
         #check critial porosity
         if self.phi <= self.c5:
@@ -128,6 +132,9 @@ class structDryFrame(object):
     def calcKSat(self,fluidK):
         return self.Kdry + ((1 - self.Kdry / self.Km_vrh) ** 2) / (
                     (self.phi / fluidK) + ((1 - self.phi) / self.Km_vrh) - (self.Kdry / (self.Km_vrh ** 2)))
+
+    def updatePres(self,newresp):
+        self.calcDryFrame(self.vsgrad,self.depth,self.initp,newresp,*self.mod)
 
 class structRock(object):
     """

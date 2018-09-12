@@ -26,9 +26,10 @@ from bokeh.models import ColumnDataSource
 from bokeh.palettes import RdYlBu3
 from bokeh.plotting import figure
 from bokeh.io import curdoc
-from bokeh.models.widgets import DataTable, TableColumn, Select, Tabs, Panel, Slider, PreText
+from bokeh.models.widgets import DataTable, TableColumn, Select, Tabs, Panel, Slider, PreText, Div
 
-from data import structLith
+from data.structLith import structMineral, structFluid, structDryFrame, structRock
+from charts import fourdimp
 
 # Initial Data
 datarocks = pd.read_csv(join(dirname(__file__), 'geoPy_rocks.csv'),skipinitialspace=True)
@@ -75,43 +76,38 @@ def update():
     pres = datapres.loc[seli[3]]
     depth = selv[5]
 
-
-    #set rock mineral assemblages
-    obnonshale = structLith.structMineral('nonshale',obrock['knonclay'],obrock['munonclay'],obrock['rhononclay'])
-    obshale = structLith.structMineral('shale',obrock['kclay'],obrock['muclay'],obrock['rhoclay'])
-    nonshale = structLith.structMineral('nonshale', resrock['knonclay'],resrock['munonclay'],resrock['rhononclay'])
-    shale = structLith.structMineral('shale', resrock['kclay'], resrock['muclay'], resrock['rhoclay'])
+    #set model rock mineral assemblages
+    parnonclay = ['knonclay', 'munonclay', 'rhononclay']; parclay = ['kclay', 'muclay', 'rhoclay']
+    obnonshale = structMineral('nonshale',*[obrock[par] for par in parnonclay])
+    obshale = structMineral('shale',*[obrock[par] for par in parclay])
+    nonshale = structMineral('nonshale',*[resrock[par] for par in parnonclay])
+    shale = structMineral('shale',*[resrock[par] for par in parclay])
     #output rock names to table
     sourceoutput.data['rock'] = [obrock['Name'],resrock['Name']]
-    #columnoutput.append(TableColumn(field='rock', title='rock'))
 
-    # oil, water, gas
-    obfluidmix = structLith.structFluid(obfluid['Name'], [obfluid['ko'],obfluid['kw'],obfluid['kg']],
-                                                      [obfluid['rhoo'], obfluid['rhow'], obfluid['rhog']],
-                                                      [obfluid['so'], obfluid['sw'], obfluid['sg']])
-    obfluidmix.mixfluids()
-    resfluidmix = structLith.structFluid(resfluid['Name'], [resfluid['ko'],resfluid['kw'],resfluid['kg']],
-                                                      [resfluid['rhoo'], resfluid['rhow'], resfluid['rhog']],
-                                                      [resfluid['so'], resfluid['sw'], resfluid['sg']])
-    resfluidmix.mixfluids()
+    # oil, water, gas, setup and mixing
+    park = ['ko', 'kw', 'kg']; parrho = ['rhoo', 'rhow', 'rhog']; pars = ['so', 'sw', 'sg']
+    obfluidmix = structFluid(obfluid['Name'], [obfluid[ind] for ind in park],
+                                                         [obfluid[ind] for ind in parrho],
+                                                         [obfluid[ind] for ind in pars])
+    resfluidmix = structFluid(resfluid['Name'], [resfluid[ind] for ind in park],
+                                                           [resfluid[ind] for ind in parrho],
+                                                           [resfluid[ind] for ind in pars])
     #output fluid names to table
     sourceoutput.data['fluid'] = [obfluid['Name'],resfluid['Name']]
 
     #Calculate dry rock frames for OB and Res
-    obdryrock = structLith.structDryFrame(obrock['Name'], obnonshale, obshale, obrock['vclay'], obrock['phi'])
-    resdryrock = structLith.structDryFrame(resrock['Name'], nonshale, shale, resrock['vclay'], resrock['phi'])
-    print('create dry rock')
+    obdryrock = structDryFrame(obrock['Name'], obnonshale, obshale, obrock['vclay'], obrock['phi'])
+    resdryrock = structDryFrame(resrock['Name'], nonshale, shale, resrock['vclay'], resrock['phi'])
     obdryrock.calcRockMatrix(); resdryrock.calcRockMatrix()
-    print('rock matrix')
-    obdryrock.calcDryFrame(pres['OB_Grad'], depth, pres['init_Pres'], pres['curr_Pres'],
-                           obrock['dryEk'],obrock['dryPk'],obrock['dryEg'],obrock['dryEk'])
-    resdryrock.calcDryFrame(pres['OB_Grad'], depth, pres['init_Pres'], pres['curr_Pres'],
-                           resrock['dryEk'],resrock['dryPk'],resrock['dryEg'],resrock['dryEk'])
+    parp = ['init_Pres', 'curr_Pres']; pardry = ['dryEk', 'dryPk', 'dryEg', 'dryEk']
+    obdryrock.calcDryFrame(pres['OB_Grad'], depth, *[pres[par] for par in parp], *[obrock[par] for par in pardry])
+    resdryrock.calcDryFrame(pres['OB_Grad'], depth, *[pres[par] for par in parp], *[resrock[par] for par in pardry])
 
     #calculate rock models and properties
-    obrockmodel = structLith.structRock(obdryrock, obfluidmix)
+    obrockmodel = structRock(obdryrock, obfluidmix)
     obrockmodel.calcGassmann(); obrockmodel.calcDensity(); obrockmodel.calcElastic()
-    resrockmodel = structLith.structRock(resdryrock, resfluidmix)
+    resrockmodel = structRock(resdryrock, resfluidmix)
     resrockmodel.calcGassmann(); resrockmodel.calcDensity(); resrockmodel.calcElastic()
 
     #output rockproperties to table
@@ -119,6 +115,9 @@ def update():
     sourceoutput.data['Vs'] = [obrockmodel.vels,resrockmodel.vels]
     sourceoutput.data['rho'] = [obrockmodel.den, resrockmodel.den]
     sourceoutput.data['other'] = [obrockmodel.pimp, resrockmodel.pimp]
+
+    #test impedance 4d
+    fourdimp.chart(fourdimpfig, resdryrock, resfluidmix, 12, 35)
 
 #Setup DataTables
 tablekwargs = dict(); tablekwargs['width'] = pagewidth; tablekwargs['editable']=True
@@ -179,9 +178,9 @@ inputtab4 = Panel(child=tableoutput, title='Model Calculations')
 
 inputtabs = Tabs(tabs=[inputtab1,inputtab2,inputtab3,inputtab4],width=pagewidth,height=200)
 
-textrowob = PreText(text="Overburden",width=pagewidth,height=50)
+textrowob = Div(text="<h1> Overburden: </h1>")
 selectrowob = row(selectobr,selectobf,width=500,height=50,sizing_mode="scale_both")
-textrowres = PreText(text="Reservoir",width=pagewidth,height=50)
+textrowres = Div(text="<h1> Reservoir: </h1>")
 selectrowres = row(selectresr,selectresf,width=500,height=50,sizing_mode="scale_both")
 selectrowpres = row(selectpres,slidedepth,width=500,height=50,sizing_mode="scale_both")
 
@@ -197,116 +196,3 @@ curdoc()
 curdoc().add_root(column(inputtabs,
                          textrowob,selectrowob,textrowres,selectrowres,selectrowpres,
                          plottabs,width=pagewidth))
-
-"""
-from func.funcAVOModels import *
-from data.structLith import structLith, structAVOMod
-from avoPyConfig import *
-from templates.plots import *
-
-import bokeh.layouts as bkl
-import bokeh.plotting as bkp
-import bokeh.models as bkm
-
-
-bkp.output_file('avo_test.html',mode='inline')
-
-for lith in lithAr:
-    lith.calcModel(nsim,std,nvar)
-    
-source = bkm.ColumnDataSource(dict(
-            name=[ln.name for ln in lithAr],
-            colour=[ln.colour for ln in lithAr],
-            vp=[ln.Vp for ln in lithAr],
-            vs=[ln.Vs for ln in lithAr],
-            rho=[ln.Rho for ln in lithAr],
-            vp_std=[ln.VpStd for ln in lithAr],
-            vs_std=[ln.VsStd for ln in lithAr],
-            rho_std=[ln.RhoStd for ln in lithAr]))
-
-intfMod=[]    
-for intf in intfAr:
-    intfMod.append(structAVOMod(intf[0],intf[1],nsim,std,nvar,intf[2]))
-
-pAVO=plotAVO(TOOLS,intfMod)
-pRPRS=plotRPRS(TOOLS,intfMod)
-pAIVPVS=plotAIVPVS(TOOLS,lithAr)
-pLMR=plotLMR(TOOLS,lithAr)
-p = bkl.gridplot([[pAVO,pRPRS],[pLMR,pAIVPVS]])
-
-
-#toggle boxes
-#intfnames=[i.name for i in intfMod]; actNames=[i for i in range(len(intfnames))]
-#toggleIntf = CheckboxGroup( labels=intfnames,active=actNames)
-#titleIntf = PreText(text='Interfaces')
-
-#q = VBox(titleIntf,toggle)
-
-
-columns = [
-        bkw.TableColumn(field="name", title="Unit"),
-        bkw.TableColumn(field="colour",title="Colour"),
-        bkw.TableColumn(field="vp", title="Velp"),
-        bkw.TableColumn(field="vs", title="Vels"),
-        bkw.TableColumn(field="rho", title="Rho"),
-        bkw.TableColumn(field="vp_std", title="Velp_Std"),
-        bkw.TableColumn(field="vs_std", title="Vels_Std"),
-        bkw.TableColumn(field="rho_std", title="Rho_Std"),
-    ]
-data_table = bkw.DataTable(source=source, columns=columns, width=1500, height=500,editable=True)
-
-#tab1 = Panel(HBox(q,p))
-tab1 = bkw.Panel(child=p,title='Plots')
-tab2 = bkw.Panel(child=data_table,title='Parameters')
-
-#curdoc().add_root(HBox(q,p))
-tabs = bkw.Tabs(tabs = [tab1,tab2])
-
-#x=calcRandNorm(3660,135,0.77,0.05)
-#print(x)
-#y=calcRandNorm(3660,135,np.random.rand(10),0.05)
-#print(y)
-bkp.show(tabs)
-
-#bkp.show(p)
-
-
-
-
-# create a plot and style its properties
-p = figure(x_range=(0, 100), y_range=(0, 100), toolbar_location=None)
-p.border_fill_color = 'black'
-p.background_fill_color = 'black'
-p.outline_line_color = None
-p.grid.grid_line_color = None
-
-# add a text renderer to our plot (no data yet)
-r = p.text(x=[], y=[], text=[], text_color=[], text_font_size="20pt",
-           text_baseline="middle", text_align="center")
-
-i = 0
-
-ds = r.data_source
-
-# create a callback that will add a number in a random location
-def callback():
-    global i
-
-    # BEST PRACTICE --- update .data in one step with a new dict
-    new_data = dict()
-    new_data['x'] = ds.data['x'] + [random()*70 + 15]
-    new_data['y'] = ds.data['y'] + [random()*70 + 15]
-    new_data['text_color'] = ds.data['text_color'] + [RdYlBu3[i%3]]
-    new_data['text'] = ds.data['text'] + [str(i)]
-    ds.data = new_data
-
-    i = i + 1
-
-# add a button widget and configure with the call back
-button = Button(label="Press Me")
-button.on_click(callback)
-
-# put the button and plot in a layout and add to the document
-curdoc().add_root(column(button, p))
-
-"""
