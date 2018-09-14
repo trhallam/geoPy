@@ -20,13 +20,13 @@
 from os.path import dirname, join
 
 import pandas as pd
+import numpy as np
 
 from bokeh.layouts import column, row
 from bokeh.models import ColumnDataSource
-from bokeh.palettes import RdYlBu3
 from bokeh.plotting import figure
 from bokeh.io import curdoc
-from bokeh.models.widgets import DataTable, TableColumn, Select, Tabs, Panel, Slider, PreText, Div
+from bokeh.models.widgets import DataTable, TableColumn, Select, Tabs, Panel, Slider, Div
 
 from data.structLith import structMineral, structFluid, structDryFrame, structRock
 from charts import fourdimp
@@ -37,11 +37,13 @@ datafluids = pd.read_csv(join(dirname(__file__),'geoPy_fluids.csv'),skipinitials
 datapres = pd.read_csv(join(dirname(__file__),'geoPy_pres.csv'),skipinitialspace=True)
 idepth = 3180 #mTVDSS
 pagewidth = 1000 #pixels
+presmin=5; presmax = 35;
 
 # Setup Sources
 sourcerocks = ColumnDataSource(datarocks)
 sourcefluids = ColumnDataSource(datafluids)
 sourcepres = ColumnDataSource(datapres)
+
 
 namesrocks = datarocks.Name.tolist()
 namesfluids = datafluids.Name.tolist()
@@ -73,7 +75,7 @@ def update():
     resrock = datarocks.loc[seli[2]]; resfluid = datafluids.loc[seli[3]]
     #   0   1     2   3     4   5     6   7   8   9
     #Name, ko, rhoo, kw, rhow, kg, rhog, so, sw, sg
-    pres = datapres.loc[seli[3]]
+    pres = datapres.loc[seli[4]]
     depth = selv[5]
 
     #set model rock mineral assemblages
@@ -86,13 +88,14 @@ def update():
     sourceoutput.data['rock'] = [obrock['Name'],resrock['Name']]
 
     # oil, water, gas, setup and mixing
-    park = ['ko', 'kw', 'kg']; parrho = ['rhoo', 'rhow', 'rhog']; pars = ['so', 'sw', 'sg']
-    obfluidmix = structFluid(obfluid['Name'], [obfluid[ind] for ind in park],
-                                                         [obfluid[ind] for ind in parrho],
-                                                         [obfluid[ind] for ind in pars])
-    resfluidmix = structFluid(resfluid['Name'], [resfluid[ind] for ind in park],
-                                                           [resfluid[ind] for ind in parrho],
-                                                           [resfluid[ind] for ind in pars])
+    #park = ['ko', 'kw', 'kg']; parrho = ['rhoo', 'rhow', 'rhog']; pars = ['so', 'sw', 'sg']
+    parw = ['kw', 'rhow', 'sw']; paro = ['ko', 'rhoo', 'so']; parg = ['kg', 'rhog', 'sg']
+    obfluidmix = structFluid(obfluid['Name'], water=[obfluid[ind] for ind in parw],
+                                              oil=[obfluid[ind] for ind in paro],
+                                              gas=[obfluid[ind] for ind in parg])
+    resfluidmix = structFluid(resfluid['Name'], water=[obfluid[ind] for ind in parw],
+                                                oil=[obfluid[ind] for ind in paro],
+                                                gas=[obfluid[ind] for ind in parg])
     #output fluid names to table
     sourceoutput.data['fluid'] = [obfluid['Name'],resfluid['Name']]
 
@@ -117,7 +120,7 @@ def update():
     sourceoutput.data['other'] = [obrockmodel.pimp, resrockmodel.pimp]
 
     #test impedance 4d
-    fourdimp.chart(fourdimpfig, resdryrock, resfluidmix, 12, 35)
+    fourdimp.calcDImp(fourdimpsource, plot_scale, resdryrock, resfluidmix, presmin, presmax, resrockmodel.pimp)
 
 #Setup DataTables
 tablekwargs = dict(); tablekwargs['width'] = pagewidth; tablekwargs['editable']=True
@@ -168,7 +171,22 @@ avostatsource = dict()
 avostatfig = figure(title="Intercept vs Gradient", tools="wheel_zoom,pan,reset")
 
 # 4D Impedance
-fourdimpfig = figure(title="Delta Impedance for Pres vs Saturation", tools="wheel_zoom,pan,reset")
+plot_scale = 2 + 1
+fourdimpmesh = [np.empty([plot_scale, plot_scale])]; fourdimpvec = [np.empty([plot_scale,2])]
+fourdimpmeshkeys = ['image', 'mesh_sw', 'mesh_so', 'mesh_sg', 'mesh_pres', 'mesh_dryk', 'mesh_dryg']
+fourdimpveckeys = ['sw', 'so', 'sg', 'swso', 'pres', 'dimpcsat', 'dimpcpres']
+fourdimpdict = dict()
+for mk in fourdimpmeshkeys:
+    fourdimpdict[mk] = fourdimpmesh
+for vk in fourdimpveckeys:
+    fourdimpdict[vk] = fourdimpvec
+
+fourdimpsource = ColumnDataSource(fourdimpdict)
+
+fourdsatfig = fourdimp.chartSat(fourdimpsource)
+fourdimpfig = fourdimp.chartDImp(fourdimpsource,presmin,presmax)
+fourdcsatfig = fourdimp.chartcSatDImp(fourdimpsource)
+fourdcpresfig = fourdimp.chartcSatDImp(fourdimpsource)
 
 #Layout of Page
 inputtab1 = Panel(child=tablerocks, title='Rock Models')
@@ -186,7 +204,7 @@ selectrowpres = row(selectpres,slidedepth,width=500,height=50,sizing_mode="scale
 
 plottab1 = Panel(child=avofig, title='AVO Reflectivity')
 plottab2 = Panel(child=avostatfig, title='Stochastic AVO')
-plottab3 = Panel(child=fourdimpfig, title='4D Impedance')
+plottab3 = Panel(child=row(fourdsatfig,fourdimpfig,column(fourdcsatfig,fourdcpresfig)), title='4D Impedance')
 
 plottabs = Tabs(tabs=[plottab1,plottab2,plottab3],width=pagewidth)
 

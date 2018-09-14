@@ -12,6 +12,7 @@
 ###############################################################################
 
 from func.funcAVOModels import calcRandNorm, calcAVO
+from func.funcRP import calcModVRH, calcDryFrame_dPres, gassmann_dry2fluid, mixfluid, calcVelp, calcVels
 import numpy as np
 import copy
 
@@ -39,29 +40,35 @@ class structFluid(object):
     This class is used to represent and model fluid properties.
     """
 
-    def __init__(self, name, bulkmod, rho, sat):
+    def __init__(self, name, water=[2.96,1.056,0.5], oil=[0.636,0.686,0.25], gas=[0.017,0.145,0.25]):
         """
         :param name: string to use for the name of the fluid.
-        :param bulkmod: bulkModulus of the fluid/s (GPa)
-        :param rho: density of the fluid/s (g/cc)
-        :param sat: saturations of the fluid/s (should add to 1).
+        :keyword water: list of bulkModulus, density, saturation
+        :keyword oil: list of bulkModulus, density, saturation
+        :keyword gas: list of bulkModulus, density, saturation
+        Units: bulkModulus in GPa, density in (g/cc), saturation in frac where the sum of 3 phases should add to 1).
         """
-        self.name = name
-        self.Ks = bulkmod
-        self.rhos = rho
-        self.sats = sat
-        self.mixfluids()
+        self.name = name     #fluid name
+        self.water = water; self.oil = oil; self.gas = gas
+        self.K = 0           #mixed fluid bulk modulus
+        self.rho = 0         #mixed fluid density
+        self.mixfluids()     #calcuate mixed fluid properties
+
+    def getKs(self):
+        return [self.water[0],self.oil[0],self.gas[0]]
+
+    def getRhos(self):
+        return [self.water[1],self.oil[1],self.gas[1]]
+
+    def getSats(self):
+        return [self.water[2],self.oil[2],self.gas[2]]
 
     def mixfluids(self):
-        self.K = 0;
-        self.rho = 0;  # reset bulk and density of mixed fluid
-        for (flK, fld, fsat) in zip(self.Ks, self.rhos, self.sats):
-            self.K = fsat / flK + self.K
-            self.rho = self.rho + fsat * fld
-        self.K = 1.0 / self.K
+        self.K, self.rho = mixfluid(self.water,self.oil,self.gas)
 
     def updateSat(self, sat):
-        self.sats = sat; self.mixfluids()
+        self.water[2] = sat[0]; self.oil[2] = sat[1]; self.gas[2] = sat[2]
+        self.mixfluids()
 
 
 class structDryFrame(object):
@@ -83,23 +90,16 @@ class structDryFrame(object):
         self.vshale = vshale
         self.phi = phi
         # define critical porosity values in fractions.
-        self.c1 = 0.3521;
-        self.c2 = 0;
-        self.c3 = 0.3521;
-        self.c4 = 0;
-        self.c5 = 0.1499;
+        self.c = [0.3521, 0, 0.3521, 0, 0.1499]
         self.fracshale = self.vshale / (1. - self.phi)  # fraction rock shale
         self.fracnonshale = (1. - self.vshale - self.phi) / (1. - self.phi)  # fraction rock not shale
         self.rho = self.fracshale*self.shale.den + self.fracnonshale*self.nonshale.den
 
-    def calcRockMatrix(self):
-        self.Km_voigt = (self.fracshale * self.shale.K) + (self.fracnonshale * self.nonshale.K);
-        self.Km_reuss = 1 / ((self.fracshale / self.shale.K) + (self.fracnonshale / self.nonshale.K));
-        self.Km_vrh = 0.5 * (self.Km_voigt + self.Km_reuss);
-
-        self.Gm_voigt = self.fracshale * self.shale.Mu + self.fracnonshale * self.nonshale.Mu;
-        self.Gm_reuss = 1 / (self.fracshale / self.shale.Mu + self.fracnonshale / self.nonshale.Mu);
-        self.Gm_vrh = 0.5 * (self.Gm_voigt + self.Gm_reuss);
+    def calcRockMatrix(self): #calculate the voigt-reuss bounds
+        self.Km_voigt, self.Km_reuss, self.Km_vrh = calcModVRH(self.fracshale, self.shale.K,
+                                                               self.fracnonshale, self.nonshale.K)
+        self.Gm_voigt, self.Gm_reuss, self.Gm_vrh = calcModVRH(self.fracshale, self.shale.Mu,
+                                                               self.fracnonshale, self.nonshale.Mu)
 
     def calcDryFrame(self,vsgrad,depth,initp,resp,Ek,Pk,Eg,Pg):
         """
@@ -116,22 +116,11 @@ class structDryFrame(object):
         self.peff = self.vstress - resp   #effective current pressure
         self.mod = [Ek,Pk,Eg,Pg]
 
-        #check critial porosity
-        if self.phi <= self.c5:
-            self.critphi = self.c1 + self.c2*self.phi
-        else:
-            self.critphi = self.c3 + self.c4*self.phi
-
-        #Calcuate Bulk Modulus for Dry Frame
-        Kdry1 = self.Km_vrh * (1 - self.phi / self.critphi)
-        self.Kdry = Kdry1 * (1 + (Ek * np.exp(-self.peffi / Pk))) / (1 + (Ek * np.exp(-self.peff / Pk)))
-
-        Gdry1 = self.Gm_vrh * (1 - self.phi / self.critphi)
-        self.Gdry = Gdry1 * (1 + (Eg * np.exp(-self.peffi / Pg))) / (1 + (Eg * np.exp(-self.peff / Pg)))
+        self.Kdry = calcDryFrame_dPres(self.peffi,self.peff,self.Km_vrh,Ek,Pk,self.phi,c=self.c)
+        self.Gdry = calcDryFrame_dPres(self.peffi,self.peff,self.Gm_vrh,Eg,Pg,self.phi,c=self.c)
 
     def calcKSat(self,fluidK):
-        return self.Kdry + ((1 - self.Kdry / self.Km_vrh) ** 2) / (
-                    (self.phi / fluidK) + ((1 - self.phi) / self.Km_vrh) - (self.Kdry / (self.Km_vrh ** 2)))
+        return gassmann_dry2fluid(self.Kdry,self.Km_vrh,fluidK,self.phi)
 
     def updatePres(self,newresp):
         self.calcDryFrame(self.vsgrad,self.depth,self.initp,newresp,*self.mod)
@@ -155,8 +144,8 @@ class structRock(object):
         self.den = self.dryFrame.rho + self.fluid.rho*self.dryFrame.phi
 
     def calcElastic(self):
-        self.vels = np.sqrt(self.dryFrame.Gdry / self.den);
-        self.velp = np.sqrt((self.Ksat + (4 / 3) * self.dryFrame.Gdry) / self.den);
+        self.vels = calcVels(self.dryFrame.Gdry, self.den)
+        self.velp = calcVelp(self.Ksat, self.dryFrame.Gdry, self.den);
         self.pimp = self.velp * self.den;
         self.simp = self.vels * self.den;
         self.vpvs = self.velp / self.vels;
