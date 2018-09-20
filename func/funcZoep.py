@@ -11,8 +11,8 @@
 
 ###############################################################################
 
-from numpy import sin, arcsin, cos, arccos, tan, \
-                  array, degrees, radians, matmul,linalg
+from numpy import sin, arcsin, cos, arccos, tan, degrees, radians, \
+                  array, matmul, linalg, vectorize
 
 def snellrr(thetai, vp1, vs1, vp2, vs2, units='radians'):
     '''
@@ -42,6 +42,7 @@ def snellrr(thetai, vp1, vs1, vp2, vs2, units='radians'):
 
 def zoeppritzfull(thetai,vp1,vs1,rho1,vp2,vs2,rho2):
     '''
+    CURRENTLY DOES NOT PREDICT AMP CORRECTLY
     Calculates the solution to the full Zoeppritz Matrix
     :param thetai: P-wave angle of incidence for wavefront in radians
     :param vp1, vs1, vp2, vs2: velocities for 2 halfspaces
@@ -62,6 +63,35 @@ def zoeppritzfull(thetai,vp1,vs1,rho1,vp2,vs2,rho2):
                [-cos(2*ang[2]), c4*sin(2*ang[2]), c5*cos(2*ang[3]), c6*sin(2*ang[3])]])
     return matmul(linalg.inv(A),B).tolist()
 
+def zoeppritzPray(thetai,vp1,vs1,rho1,vp2,vs2,rho2):
+    '''
+    Calculates the solution to an incident down-going P-wave ray.
+    :param thetai: P-wave angle of incidence for wavefront in radians
+    :param vp1, vs1, vp2, vs2: velocities for 2 halfspaces
+    :param rho1, rho2: densities for 2 halfspaces
+    :return: list [Rp, Rs, Tp, Ts] of amplitudes for reflected and transmitted rays
+    '''
+    ang = snellrr(thetai, vp1, vs1, vp2, vs2)
+
+    p = sin(thetai)/vp1; p2 = p*p
+    a = rho2*(1-2*vs2**2*p2) - rho1*(1-2*vs1**2*p2)
+    b = rho2*(1-2*vs2**2*p2) + 2*rho1*vs1**2*p2
+    c = rho1*(1-2*vs1**2*p2) + 2*rho2*vs2**2*p2
+    d = 2*(rho2*vs2**2 - rho1*vs1**2)
+    E = b*cos(ang[0])/vp1 + c*cos(ang[1])/vp2
+    F = b*cos(ang[2])/vs1 + c*cos(ang[3])/vs2
+    G = a - d*cos(ang[0])/vp1*cos(ang[3])/vs2
+    H = a - d*cos(ang[1])/vp2*cos(ang[2])/vs1
+    D = E*F+G*H*p2
+
+    PdPu = 1/D * ((b*cos(ang[0])/vp1-c*cos(ang[1])/vp2)*F - (a+d*cos(ang[0])/vp1*cos(ang[3])/vs2)*H*p2)
+    PdPd = 2*rho1*cos(ang[0])/vp1 * F * vp1/(vp2*D)
+    PdSu = -2 * cos(ang[0])/vp1 * (a*b + c*d*cos(ang[1])/vp2*cos(ang[3])/vs2)*p*vp1 / (vs2*D)
+    PdSd = 2*rho1*cos(ang[0])/vp1 * H*p*vp1/ (vs2*D)
+
+    return [PdPu, PdPd, PdSu, PdSd]
+
+
 def calcreflp(vp1,vs1,rho1,vp2,vs2,rho2):
     '''
     Calculates the reflectivity parameters of an interface.
@@ -74,39 +104,62 @@ def calcreflp(vp1,vs1,rho1,vp2,vs2,rho2):
     dVp = vp2-vp1; dVs = vs2-vs1; drho = rho2-rho1
     return [rVp, rVs, rrho, rVsVp, dVp, dVs, drho]
 
-def bortfeld(thetai,vp1,vs1,rho1,vp2,vs2,rho2):
+def bortfeld(theta,vp1,vs1,rho1,vp2,vs2,rho2):
     '''
     Calculates the solution to the full Bortfeld equations (1961)
     These are approximations which work well when the interval velocity is well defined.
-    :param thetai: P-wave angle of incidence for wavefront in radians
+    :param theta: P-wave angle of incidence for wavefront in radians
     :param vp1, vs1, vp2, vs2: velocities for 2 halfspaces
     :param rho1, rho2: densities for 2 halfspaces
-    :return: list [Rp, Rs, Tp, Ts] of amplitudes for reflected and transmitted rays
+    :return: Rp(theta) P-wave reflectivity of angle theta.
     '''
     rVp, rVs, rrho, rVsVp, dVp, dVs, drho = calcreflp(vp1,vs1,rho1,vp2,vs2,rho2)
     Rp = dVp/(2*rVp); Rrho = drho/(2*rrho); k=(2*rVs/rVp)**2
     R0 = Rp+Rrho; Rsh = 0.5*(dVp/rVp - k*drho/(2*rrho)-2*k*dVs/rVs)
-    return R0+Rsh*sin(thetai)**2.0+Rp*(tan(thetai)**2)*(sin(thetai)**2)
+    return R0+Rsh*sin(theta)**2.0+Rp*(tan(theta)**2)*(sin(theta)**2)
+
+def akirichards(theta,vp1,vs1,rho1,vp2,vs2,rho2,method='avseth'):
+    '''
+    Aki-Richards forumlation of reflectivity functions.
+    :param theta: P-wave angle of incidence for wavefront in radians
+    :param vp1, vs1, vp2, vs2: velocities for 2 halfspaces
+    :param rho1, rho2: densities for 2 halfspaces
+    :param method: 'avseth' - avseth formulation or 'ar' - original aki-richards
+    :return: Rp(theta)
+    '''
+    rVp, rVs, rrho, rVsVp, dVp, dVs, drho = calcreflp(vp1, vs1, rho1, vp2, vs2, rho2)
+    ang = snellrr(theta, vp1, vs1, vp2, vs2)
+    ang_Pavg = (ang[0]+ang[1])/2
+    if method == 'avseth':
+        W = 0.5*drho/rrho
+        X = 2*rVs*rVs*drho / (vp1*vp1*rrho)
+        Y = 0.5 * dVp / (rVp)
+        Z = 4 * rVs * rVs * dVs / (vp1*vp1*rVs)
+        return W - X*sin(theta)*sin(theta)+Y/(cos(ang_Pavg)*cos(ang_Pavg))-Z*sin(theta)*sin(theta)
+    elif method =='ar':
+        return 0.5*(dVp/rVp+drho/rrho)+0.5*(dVp/rVp-4*rVsVp*rVsVp*(drho/rrho+2*dVs/rVs))*theta*theta
+
+def shuey(theta,vp1,vs1,rho1,vp2,vs2,rho2,mode='rtheta'):
+    '''
+    Shuey approximation to the Aki-Richards equations.
+    :param theta: P-wave angle of incidence for wavefront in radians
+    :param vp1, vs1, vp2, vs2: velocities for 2 halfspaces
+    :param rho1, rho2: densities for 2 halfspaces
+    :param mode: what to return 'rtheta' returns Rp(theta)
+                                'R0_G'   returns [R0,G] aka [A,B]
+    :return: Rp(theta)
+    '''
+    rVp, rVs, rrho, rVsVp, dVp, dVs, drho = calcreflp(vp1, vs1, rho1, vp2, vs2, rho2)
+    R0 = 0.5 *(dVp/rVp+drho/rrho)
+    G = 0.5 * dVp/rVp - 2. * (rVs*rVs)/(rVp*rVp)*(drho/rrho + 2.* dVs/rVs)
+    if mode == 'rtheta':
+        return R0 + G*sin(theta)*sin(theta)
+    elif mode == 'R0_G':
+        return [R0,G]
 
 if __name__ == "__main__":
-    from numpy import round, array_equal
-
-    def test_func(act,qcr):
-        if array_equal(act,qcr):
-            print('passed')
-        else:
-            print('failed')
-            print('Expected:'); print(qcr)
-            print('Output:'); print(act)
-
-    def test_msg(fname, test_description, act, qcr):
-        msg = 'test: '+fname+' - '+test_description+" "
-        dots = (74-len(msg)%80)*"."
-        print(msg,dots,end=" ")
-        test_func(act, qcr)
-
-    def test_title_msg(fname):
-        print("##### unittest "+fname)
+    from numpy import round
+    from tests import test_title_msg, test_msg
 
     # test setup
     thetaid = 20       #degrees
@@ -132,6 +185,11 @@ if __name__ == "__main__":
     act_zoeppritzfull = round(zoeppritzfull(thetair,vp1,vs1,rho1,vp2,vs2,rho2),6)
     test_msg('zoeppritzfull','full zoeppritz equation',act_zoeppritzfull,qcr_zoeppritzfull)
 
+    test_title_msg("zoeppritzPray")
+    qcr_zoeppritzPray = [0.077261, 0.901362, -0.076451, -0.085402]
+    act_zoeppritzPray = round(zoeppritzPray(thetair,vp1,vs1,rho1,vp2,vs2,rho2),6)
+    test_msg('zoeppritzPray','all parameters',act_zoeppritzPray,qcr_zoeppritzPray)
+
     test_title_msg("calcreflp")
     qcr_calcreflp = [3250.000000, 2000.000000, 2.475000, 0.615385, 500.000000, 400.000000, 0.150000]
     act_calcreflp = round(calcreflp(vp1,vs1,rho1,vp2,vs2,rho2),6)
@@ -141,3 +199,19 @@ if __name__ == "__main__":
     qcr_bortfeld = 0.07929219225650763
     act_bortfeld = bortfeld(thetair,vp1,vs1,rho1,vp2,vs2,rho2)
     test_msg("bortfeld","",act_bortfeld,qcr_bortfeld)
+
+    test_title_msg("akirichards")
+    qcr_akirichards_avseth = 0.07158654420684037
+    qcr_akirichards_ar = 0.07409121930516233
+    act_akirichards_avseth = akirichards(thetair,vp1,vs1,rho1,vp2,vs2,rho2)
+    act_akirichards_ar = akirichards(thetair,vp1,vs1,rho1,vp2,vs2,rho2,method='ar')
+    test_msg('akirichards','avseth method',act_akirichards_avseth,qcr_akirichards_avseth)
+    test_msg('akirichards','ar method',act_akirichards_ar,qcr_akirichards_ar)
+
+    test_title_msg('shuey')
+    qcr_shuey_rtheta = 0.07541534075276615
+    act_shuey_rtheta = shuey(thetair,vp1,vs1,rho1,vp2,vs2,rho2)
+    qcr_shuey_r0_g = [0.10722610722610722, -0.27193831809216423]
+    act_shuey_r0_g = shuey(thetair,vp1,vs1,rho1,vp2,vs2,rho2,mode='R0_G')
+    test_msg('shuey','mode=rtheta',act_shuey_rtheta,qcr_shuey_rtheta)
+    test_msg('shuey','mode=R0_G',act_shuey_r0_g,qcr_shuey_r0_g)

@@ -29,7 +29,7 @@ from bokeh.io import curdoc
 from bokeh.models.widgets import DataTable, TableColumn, Select, Tabs, Panel, Slider, Div
 
 from data.structLith import structMineral, structFluid, structDryFrame, structRock
-from charts import fourdimp
+from charts import fdi
 
 # Initial Data
 datarocks = pd.read_csv(join(dirname(__file__), 'geoPy_rocks.csv'),skipinitialspace=True)
@@ -120,7 +120,8 @@ def update():
     sourceoutput.data['other'] = [obrockmodel.pimp, resrockmodel.pimp]
 
     #test impedance 4d
-    fourdimp.calcDImp(fourdimpsource, plot_scale, resdryrock, resfluidmix, presmin, presmax, resrockmodel.pimp)
+    #fourdimp.calcDImp(fourdimpsource, fourdvecsource, plot_scale, resdryrock, resfluidmix, presmin, presmax, resrockmodel.pimp)
+    fourdimp.updateModel(resdryrock,resfluidmix,5,25,init_imp=resrockmodel.pimp)
 
 #Setup DataTables
 tablekwargs = dict(); tablekwargs['width'] = pagewidth; tablekwargs['editable']=True
@@ -171,22 +172,8 @@ avostatsource = dict()
 avostatfig = figure(title="Intercept vs Gradient", tools="wheel_zoom,pan,reset")
 
 # 4D Impedance
-plot_scale = 2 + 1
-fourdimpmesh = [np.empty([plot_scale, plot_scale])]; fourdimpvec = [np.empty([plot_scale,2])]
-fourdimpmeshkeys = ['image', 'mesh_sw', 'mesh_so', 'mesh_sg', 'mesh_pres', 'mesh_dryk', 'mesh_dryg']
-fourdimpveckeys = ['sw', 'so', 'sg', 'swso', 'pres', 'dimpcsat', 'dimpcpres']
-fourdimpdict = dict()
-for mk in fourdimpmeshkeys:
-    fourdimpdict[mk] = fourdimpmesh
-for vk in fourdimpveckeys:
-    fourdimpdict[vk] = fourdimpvec
-
-fourdimpsource = ColumnDataSource(fourdimpdict)
-
-fourdsatfig = fourdimp.chartSat(fourdimpsource)
-fourdimpfig = fourdimp.chartDImp(fourdimpsource,presmin,presmax)
-fourdcsatfig = fourdimp.chartcSatDImp(fourdimpsource)
-fourdcpresfig = fourdimp.chartcSatDImp(fourdimpsource)
+plot_scale = 100 + 1
+fourdimp = fdi.widgetFDI(plot_scale, 5, 25)
 
 #Layout of Page
 inputtab1 = Panel(child=tablerocks, title='Rock Models')
@@ -204,7 +191,7 @@ selectrowpres = row(selectpres,slidedepth,width=500,height=50,sizing_mode="scale
 
 plottab1 = Panel(child=avofig, title='AVO Reflectivity')
 plottab2 = Panel(child=avostatfig, title='Stochastic AVO')
-plottab3 = Panel(child=row(fourdsatfig,fourdimpfig,column(fourdcsatfig,fourdcpresfig)), title='4D Impedance')
+plottab3 = Panel(child=fourdimp.layout, title='4D Impedance')
 
 plottabs = Tabs(tabs=[plottab1,plottab2,plottab3],width=pagewidth)
 
