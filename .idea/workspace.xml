@@ -11,32 +11,11 @@
   </component>
   <component name="FileEditorManager">
     <leaf SIDE_TABS_SIZE_LIMIT_KEY="300">
-      <file leaf-file-name="structLith.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/data/structLith.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="1534">
-              <caret line="103" column="8" selection-start-line="103" selection-start-column="8" selection-end-line="103" selection-end-column="8" />
-              <folding>
-                <element signature="e#285#337#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="funcRP.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/func/funcRP.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-198">
-              <caret selection-end-line="11" selection-end-column="79" />
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file leaf-file-name="geoPy.py" pinned="false" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/geoPy.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="401">
-              <caret line="177" selection-start-line="177" selection-end-line="177" />
+            <state relative-caret-position="396">
+              <caret line="36" column="54" selection-start-line="36" selection-start-column="54" selection-end-line="36" selection-end-column="54" />
               <folding>
                 <element signature="e#401#434#0" expanded="true" />
               </folding>
@@ -44,58 +23,20 @@
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="fourdimp.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/charts/fourdimp.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-327">
-              <caret line="128" column="45" selection-start-line="128" selection-start-column="45" selection-end-line="128" selection-end-column="45" />
-              <folding>
-                <element signature="e#383#401#0" expanded="true" />
-                <element signature="e#959#1620#0" />
-                <element signature="e#1693#2009#0" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
       <file leaf-file-name="fdi.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/charts/fdi.py">
+        <entry file="file://$PROJECT_DIR$/layouts/fdi.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-264">
-              <caret line="172" selection-start-line="172" selection-end-line="172" />
-              <folding>
-                <element signature="e#383#401#0" expanded="true" />
-              </folding>
+            <state relative-caret-position="352">
+              <caret line="25" selection-start-line="25" selection-end-line="25" />
             </state>
           </provider>
         </entry>
       </file>
-      <file leaf-file-name="avorefl.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/charts/avorefl.py">
+      <file leaf-file-name="dims.py" pinned="false" current-in-tab="false">
+        <entry file="file://$PROJECT_DIR$/layouts/dims.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="-1359">
-              <caret line="25" selection-start-line="25" selection-end-line="31" selection-end-column="7" />
-              <folding>
-                <element signature="e#359#396#0" expanded="true" />
-              </folding>
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="dataTests.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/tests/dataTests.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="220">
-              <caret line="13" column="27" selection-start-line="13" selection-start-column="27" selection-end-line="13" selection-end-column="27" />
-            </state>
-          </provider>
-        </entry>
-      </file>
-      <file leaf-file-name="funcZoep.py" pinned="false" current-in-tab="false">
-        <entry file="file://$PROJECT_DIR$/func/funcZoep.py">
-          <provider selected="true" editor-type-id="text-editor">
-            <state relative-caret-position="2587">
-              <caret line="189" column="81" selection-start-line="189" selection-start-column="81" selection-end-line="189" selection-end-column="81" />
+            <state relative-caret-position="396">
+              <caret line="37" column="22" selection-start-line="37" selection-start-column="22" selection-end-line="37" selection-end-column="22" />
             </state>
           </provider>
         </entry>
@@ -116,6 +57,7 @@
     </findStrings>
   </component>
   <component name="Git.Settings">
+    <option name="ROOT_SYNC" value="DONT_SYNC" />
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
   <component name="IdeDocumentHistory">
@@ -133,6 +75,8 @@
         <option value="$PROJECT_DIR$/charts/avorefl.py" />
         <option value="$PROJECT_DIR$/charts/fourdimp.py" />
         <option value="$PROJECT_DIR$/charts/fdi.py" />
+        <option value="$PROJECT_DIR$/layouts/fdi.py" />
+        <option value="$PROJECT_DIR$/layouts/dims.py" />
         <option value="$PROJECT_DIR$/geoPy.py" />
       </list>
     </option>
@@ -158,17 +102,17 @@
             <path>
               <item name="geoPy" type="b2602c69:ProjectViewProjectNode" />
               <item name="geoPy" type="462c0819:PsiDirectoryNode" />
-              <item name="charts" type="462c0819:PsiDirectoryNode" />
-            </path>
-            <path>
-              <item name="geoPy" type="b2602c69:ProjectViewProjectNode" />
-              <item name="geoPy" type="462c0819:PsiDirectoryNode" />
               <item name="data" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
               <item name="geoPy" type="b2602c69:ProjectViewProjectNode" />
               <item name="geoPy" type="462c0819:PsiDirectoryNode" />
-              <item name="func" type="462c0819:PsiDirectoryNode" />
+              <item name="layouts" type="462c0819:PsiDirectoryNode" />
+            </path>
+            <path>
+              <item name="geoPy" type="b2602c69:ProjectViewProjectNode" />
+              <item name="geoPy" type="462c0819:PsiDirectoryNode" />
+              <item name="templates" type="462c0819:PsiDirectoryNode" />
             </path>
             <path>
               <item name="geoPy" type="b2602c69:ProjectViewProjectNode" />
@@ -187,12 +131,13 @@
   </component>
   <component name="PropertiesComponent">
     <property name="SearchEverywhereHistoryKey" value="&#9;FILE&#9;file://C:/Users/trhal/Github/geoPy/geoPy.py" />
-    <property name="last_opened_file_path" value="$PROJECT_DIR$/charts/fourdimp.py" />
+    <property name="last_opened_file_path" value="$PROJECT_DIR$/geoPy.py" />
     <property name="restartRequiresConfirmation" value="false" />
-    <property name="settings.editor.selected.configurable" value="preferences.lookFeel" />
+    <property name="settings.editor.selected.configurable" value="vcs.Git" />
   </component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
+      <recent name="C:\Users\trhal\Github\geoPy\layouts" />
       <recent name="C:\Users\trhal\Github\geoPy\charts" />
       <recent name="C:\Users\trhal\Github\geoPy" />
     </key>
@@ -209,7 +154,7 @@
       </list>
     </option>
   </component>
-  <component name="RunManager" selected="Python.avorefl">
+  <component name="RunManager" selected="Python.geoPy - Serve">
     <configuration name="avorefl" type="PythonConfigurationType" factoryName="Python" temporary="true">
       <module name="geoPy" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -300,6 +245,24 @@
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
     </configuration>
+    <configuration name="geoPy - Serve" type="PythonConfigurationType" factoryName="Python" singleton="true">
+      <module name="geoPy" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="C:\Users\trhal\Anaconda3\envs\geoPy_2018\python.exe" />
+      <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="SCRIPT_NAME" value="$PROJECT_DIR$/geoPy.py" />
+      <option name="PARAMETERS" value="-m bokeh serve --show" />
+      <option name="SHOW_COMMAND_LINE" value="true" />
+      <option name="EMULATE_TERMINAL" value="false" />
+      <option name="MODULE_MODE" value="false" />
+    </configuration>
     <configuration name="geoPy" type="PythonConfigurationType" factoryName="Python" singleton="true" temporary="true">
       <module name="geoPy" />
       <option name="INTERPRETER_OPTIONS" value="" />
@@ -313,13 +276,14 @@
       <option name="ADD_CONTENT_ROOTS" value="true" />
       <option name="ADD_SOURCE_ROOTS" value="true" />
       <option name="SCRIPT_NAME" value="$PROJECT_DIR$/geoPy.py" />
-      <option name="PARAMETERS" value="" />
+      <option name="PARAMETERS" value="-m bokeh serve --show" />
       <option name="SHOW_COMMAND_LINE" value="true" />
       <option name="EMULATE_TERMINAL" value="false" />
       <option name="MODULE_MODE" value="false" />
     </configuration>
     <list>
       <item itemvalue="Python.fourdimp" />
+      <item itemvalue="Python.geoPy - Serve" />
       <item itemvalue="Python.dataTests" />
       <item itemvalue="Python.geoPy" />
       <item itemvalue="Python.funcZoep" />
@@ -328,9 +292,9 @@
     </list>
     <recent_temporary>
       <list>
-        <item itemvalue="Python.avorefl" />
-        <item itemvalue="Python.fdi" />
         <item itemvalue="Python.geoPy" />
+        <item itemvalue="Python.fdi" />
+        <item itemvalue="Python.avorefl" />
         <item itemvalue="Python.funcZoep" />
         <item itemvalue="Python.dataTests" />
       </list>
@@ -353,12 +317,13 @@
     <frame x="762" y="0" width="781" height="840" extended-state="0" />
     <editor active="true" />
     <layout>
-      <window_info content_ui="combo" id="Project" order="0" weight="0.18489583" />
+      <window_info content_ui="combo" id="Project" order="0" weight="0.3702738" />
       <window_info anchor="bottom" id="TODO" order="6" />
-      <window_info anchor="bottom" id="Event Log" order="7" side_tool="true" />
+      <window_info anchor="bottom" id="Event Log" order="7" sideWeight="0.50065106" side_tool="true" weight="0.3292517" />
+      <window_info anchor="bottom" id="Find" order="1" weight="0.3287483" />
       <window_info anchor="bottom" id="Version Control" order="7" />
       <window_info anchor="bottom" id="Python Console" order="7" />
-      <window_info active="true" anchor="bottom" id="Run" order="2" visible="true" weight="0.33287483" />
+      <window_info anchor="bottom" id="Run" order="2" sideWeight="0.49934897" weight="0.33287483" />
       <window_info id="Structure" order="1" side_tool="true" weight="0.25" />
       <window_info anchor="bottom" id="Terminal" order="7" />
       <window_info id="Favorites" order="2" side_tool="true" />
@@ -369,7 +334,6 @@
       <window_info anchor="bottom" id="Message" order="0" />
       <window_info anchor="bottom" id="Inspection" order="5" weight="0.4" />
       <window_info anchor="bottom" id="Cvs" order="4" weight="0.25" />
-      <window_info anchor="bottom" id="Find" order="1" />
     </layout>
     <layout-to-restore>
       <window_info anchor="right" content_ui="combo" id="Hierarchy" order="2" weight="0.25" />
@@ -563,13 +527,6 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/func/funcZoep.py">
-      <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="2587">
-          <caret line="189" column="81" selection-start-line="189" selection-start-column="81" selection-end-line="189" selection-end-column="81" />
-        </state>
-      </provider>
-    </entry>
     <entry file="file://$USER_HOME$/Anaconda3/envs/geoPy_2018/Lib/site-packages/bokeh/core/property/descriptors.py">
       <provider selected="true" editor-type-id="text-editor">
         <state relative-caret-position="148">
@@ -577,13 +534,77 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/charts/avorefl.py">
+    <entry file="file://$PROJECT_DIR$/charts/fourdimp.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-1359">
-          <caret line="25" selection-start-line="25" selection-end-line="31" selection-end-column="7" />
+        <state relative-caret-position="-1395">
+          <caret line="128" column="45" selection-start-line="128" selection-start-column="45" selection-end-line="128" selection-end-column="45" />
+          <folding>
+            <element signature="e#383#401#0" expanded="true" />
+            <element signature="e#959#1620#0" />
+            <element signature="e#1693#2009#0" />
+          </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/templates/plots.py">
+      <provider selected="true" editor-type-id="text-editor" />
+    </entry>
+    <entry file="file://$USER_HOME$/Anaconda3/envs/geoPy_2018/Lib/site-packages/bokeh/models/axes.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="154">
+          <caret line="16" column="19" selection-start-line="16" selection-start-column="19" selection-end-line="16" selection-end-column="19" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Anaconda3/envs/geoPy_2018/Lib/site-packages/bokeh/models/renderers.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="16">
+          <caret line="23" column="18" selection-start-line="23" selection-start-column="18" selection-end-line="23" selection-end-column="18" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Anaconda3/envs/geoPy_2018/Lib/site-packages/bokeh/model.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="684">
+          <caret line="210" column="6" selection-start-line="210" selection-start-column="6" selection-end-line="210" selection-end-column="6" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Anaconda3/envs/geoPy_2018/Lib/site-packages/bokeh/models/sources.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-1672">
+          <caret line="18" column="6" selection-start-line="18" selection-start-column="6" selection-end-line="18" selection-end-column="6" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/func/funcZoep.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="4158">
+          <caret line="189" column="81" selection-start-line="189" selection-start-column="81" selection-end-line="189" selection-end-column="81" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$PROJECT_DIR$/layouts/avorefl.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="110">
+          <caret line="23" selection-start-line="23" selection-end-line="23" />
           <folding>
             <element signature="e#359#396#0" expanded="true" />
           </folding>
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Anaconda3/envs/geoPy_2018/Lib/site-packages/bokeh/models/widgets/sliders.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="-594">
+          <caret line="15" column="6" selection-start-line="15" selection-start-column="6" selection-end-line="15" selection-end-column="6" />
+        </state>
+      </provider>
+    </entry>
+    <entry file="file://$USER_HOME$/Anaconda3/envs/geoPy_2018/Lib/site-packages/bokeh/core/properties.py">
+      <provider selected="true" editor-type-id="text-editor">
+        <state relative-caret-position="156">
+          <caret line="1321" selection-start-line="1321" selection-end-line="1321" />
         </state>
       </provider>
     </entry>
@@ -604,32 +625,24 @@
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/charts/fourdimp.py">
+    <entry file="file://$PROJECT_DIR$/layouts/fdi.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-327">
-          <caret line="128" column="45" selection-start-line="128" selection-start-column="45" selection-end-line="128" selection-end-column="45" />
-          <folding>
-            <element signature="e#383#401#0" expanded="true" />
-            <element signature="e#959#1620#0" />
-            <element signature="e#1693#2009#0" />
-          </folding>
+        <state relative-caret-position="352">
+          <caret line="25" selection-start-line="25" selection-end-line="25" />
         </state>
       </provider>
     </entry>
-    <entry file="file://$PROJECT_DIR$/charts/fdi.py">
+    <entry file="file://$PROJECT_DIR$/layouts/dims.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="-264">
-          <caret line="172" selection-start-line="172" selection-end-line="172" />
-          <folding>
-            <element signature="e#383#401#0" expanded="true" />
-          </folding>
+        <state relative-caret-position="396">
+          <caret line="37" column="22" selection-start-line="37" selection-start-column="22" selection-end-line="37" selection-end-column="22" />
         </state>
       </provider>
     </entry>
     <entry file="file://$PROJECT_DIR$/geoPy.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state relative-caret-position="401">
-          <caret line="177" selection-start-line="177" selection-end-line="177" />
+        <state relative-caret-position="396">
+          <caret line="36" column="54" selection-start-line="36" selection-start-column="54" selection-end-line="36" selection-end-column="54" />
           <folding>
             <element signature="e#401#434#0" expanded="true" />
           </folding>

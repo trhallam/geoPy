@@ -15,25 +15,34 @@
 ###############################################################################
 
 import numpy as np
-from colorcet import b_diverging_bwr_40_95_c42
+from colorcet import b_diverging_bwr_40_95_c42 as cbwr
+from colorcet import b_rainbow_bgyr_35_85_c72 as crainbow
 
 from bokeh.layouts import row, column
-from bokeh.models import LayoutDOM, LinearColorMapper, ColorBar, ColumnDataSource
+from bokeh.models import LinearColorMapper, ColorBar, ColumnDataSource, CustomJS, LinearAxis
 from bokeh.models.widgets import Slider, RadioButtonGroup, Button
 from bokeh.plotting import figure
 
-from data.structLith import structRock
 from func.funcRP import calcDryFrame_dPres, calcVelp, calcVels, gassmann_dry2fluid, mixfluid
 
-import random
-
-#global variables for charting and data control
+javaDir = """
+function dir(object) {
+    stuff = [];
+    for (s in object) {
+        stuff.push(s);
+    }
+    stuff.sort();
+    return stuff;
+}
+"""
 
 class widgetFDI(object):
 
     mesh_keys = ['image', 'mesh_sw', 'mesh_so', 'mesh_sg', 'mesh_pres', 'mesh_dryk', 'mesh_dryg', 'mesh_pimp', 'mesh_dpimp']
     vec_keys  = ['sw', 'so', 'sg', 'swso', 'pres', 'dimpcsat', 'dimpcpres', 'ipres', 'isw', 'cpres', 'csw']
     patch_keys = ['psw','pso','psg','ysw','yhyd']
+    var_keys = ['min_pres','max_pres','cur_pres','cur_sat','plot_scale','plot_dws','plot_dpres',
+                'high_pimp','low_pimp','high_dpimp','low_dpimp','amax_dpimp']
 
     def __init__(self,plot_scale,min_pres,max_pres):
         '''
@@ -44,6 +53,8 @@ class widgetFDI(object):
         self.max_pres = max_pres
         self.cur_pres = 0; self.cur_sat=0
         self.plot_scale = plot_scale
+        self.high_pimp=15; self.low_pimp=5;
+        self.high_dpimp=5; self.low_dpimp=-5
 
         #control defaults
         self.toggleAbs = False
@@ -55,18 +66,24 @@ class widgetFDI(object):
         self.vec_dict = dict()
         self.patch = np.empty(3)
         self.patch_dict = dict()
+        self.var_dict = dict()
         for mk in self.mesh_keys:
             self.mesh_dict[mk] = self.mesh
         for vk in self.vec_keys:
             self.vec_dict[vk] = self.vec
         for pk in self.patch_keys:
             self.patch_dict[pk] = self.patch
+        for vk in self.var_keys:
+            self.var_dict[vk]=[0.0]
 
         self.patch_dict['ysw'] = [0,1,1]; self.patch_dict['yhyd'] = [0,1,0]
+        self.var_dict['min_pres']=[min_pres]; self.var_dict['max_pres']=[max_pres]
+        self.var_dict['plot_scale']=[plot_scale]
 
         self.CDS_mesh = ColumnDataSource(self.mesh_dict)
         self.CDS_vec = ColumnDataSource(self.vec_dict)
         self.CDS_pat = ColumnDataSource(self.patch_dict)
+        self.CDS_var = ColumnDataSource(self.var_dict)
 
         self.createChartDImp()
         self.createChartSat()
@@ -82,7 +99,7 @@ class widgetFDI(object):
                               x_range=(self.min_pres, self.max_pres), y_range=(0, 1))
         self.figDImp.xaxis.axis_label = "Reservoir Pressure (MPa)"
         self.figDImp.yaxis.axis_label = "Water Saturation (Frac)"
-        self.dicm = LinearColorMapper(palette=b_diverging_bwr_40_95_c42, low=-5, high=5)
+        self.dicm = LinearColorMapper(palette=cbwr, low=-5, high=5)
         # must give a vector of image data for image parameter
         self.figDImp.image(source=self.CDS_mesh,image='image', x=self.min_pres, y=0, dw=self.max_pres - self.min_pres,
                            dh=1, color_mapper=self.dicm)
@@ -109,28 +126,37 @@ class widgetFDI(object):
     def createChartCSatDImp(self):
         self.figCSat = figure(title='Constant Saturation vs Delta Imp',height=300)
         self.figCSat.xaxis.axis_label = "Pressure (MPa)"
-        self.figCSat.yaxis.axis_label = "Delta Imp (%)"
+        self.figCSat.yaxis.visible=None
+        self.figCSatyaxis = LinearAxis(axis_label='Delta Imp (%)')
+        self.figCSat.add_layout(self.figCSatyaxis,place='left')
         self.figCSat.line('pres','dimpcsat',source=self.CDS_vec,color='black')
 
     def createChartCPresDImp(self):
         self.figCPres = figure(title='Constant Pressure vs Delta Imp',height=300)
         self.figCPres.xaxis.axis_label = "Saturation Sw (frac)"
-        self.figCPres.yaxis.axis_label = "Delta Imp (%)"
+        self.figCPres.yaxis.axis_label = \
+        self.figCPres.yaxis.visible=None
+        self.figCPresyaxis = LinearAxis(axis_label="Delta Imp (%)")
+        self.figCPres.add_layout(self.figCPresyaxis,place='left')
         self.figCPres.line('sw','dimpcpres',source=self.CDS_vec,color='black')
 
     def createControls(self):
         delta_pres = (self.max_pres - self.min_pres)/(self.plot_scale-1)
         delta_sat = 1.0 / (self.plot_scale - 1)
+
         self.slidePres = Slider(start=self.min_pres, end=self.max_pres,
                                 value=self.min_pres+(self.max_pres-self.min_pres),
-                                step=delta_pres, title= 'Constant Pressure')
-        self.slideSat = Slider(start=0, end=1, value=0.5, step=delta_sat, title= 'Constant Saturation')
+                                step=delta_pres, title= 'Constant Pressure',
+                                callback_policy='mouseup')
+        self.slideSat = Slider(start=0, end=1, value=0.5, step=delta_sat, title= 'Constant Saturation',
+                               callback_policy='mouseup')
         self.radioAbsRel = RadioButtonGroup(labels=['Absolute','Relative'], active=1)
         self.buttonReset = Button(label='Reset Initial Conditions')
 
         self.slidePres.on_change('value',self.updateCPres)
         self.slideSat.on_change('value',self.updateCSat)
         self.radioAbsRel.on_change('active',self.toggleAbsRel)
+        self.buttonReset.on_click(self.clickReset)
 
     def createLayout(self):
         controls_row = row(self.slidePres,self.slideSat,self.radioAbsRel, self.buttonReset)
@@ -151,6 +177,16 @@ class widgetFDI(object):
         self.CDS_vec.data['dimpcpres'] = self.mesh_dict['image'][:,ipres].tolist()
         self.CDS_vec.data['dimpcsat'] = self.mesh_dict['image'][isat,:].tolist()
 
+    def updateImpRanges(self):
+        '''
+        Updates class variables which contain the min and max of the calculated Impedances.
+        '''
+        self.var_dict['high_pimp'] = [np.max(self.mesh_dict['mesh_pimp'])]
+        self.var_dict['low_pimp'] = [np.min(self.mesh_dict['mesh_pimp'])]
+        self.var_dict['high_dimp'] = [np.max(self.mesh_dict['mesh_dpimp'])]
+        self.var_dict['low_dimp'] = [np.min(self.mesh_dict['mesh_dpimp'])]
+        self.var_dict['amax_dpimp'] = [np.amax(self.mesh_dict['mesh_dpimp'])]
+
     def updateModel(self, resdryframe, resfluid, presmin, presmax, init_imp=None):
         '''
         :param resdryframe: A dryframe rock model from structLith
@@ -170,7 +206,7 @@ class widgetFDI(object):
 
         #setup water saturation variations
         kw, ko, kg = resfluid.getKs(); rhow, rhoo, rhog = resfluid.getRhos(); swi, soi, sgi = resfluid.getSats()
-        self.init_sw = swi
+        self.init_sw = swi; print(self.init_sw, soi, sgi)
         pc_hyd_oil = soi / (1-swi); pc_hyd_gas = sgi / (1-swi)  #work out oil and gas pc
         dsw = 1.0 / (self.plot_scale - 1)                       # delta sw for plotting
         self.vec_dict['sw'] = np.arange(0, 1 + dsw, dsw)        # saturation water
@@ -192,48 +228,59 @@ class widgetFDI(object):
                 mesh_mfluidK[i,j], mesh_mfluidRho[i,j] = mixfluid(water=[kw,rhow,self.mesh_dict['mesh_sw'][i,j]],
                                                                   oil=[ko,rhoo,self.mesh_dict['mesh_so'][i,j]],
                                                                   gas=[kg,rhog,self.mesh_dict['mesh_sg'][i,j]])
-        #calculate rockmodels
+        #calculate rockmodel moduli
         self.mesh_dict['mesh_dryk'] = calcDryFrame_dPres(self.init_pres, self.mesh_dict['mesh_pres'],
                                                          Km_vrh, Ek, Pk, resdryframe.phi, c=resdryframe.c)
         self.mesh_dict['mesh_dryg'] = calcDryFrame_dPres(self.init_pres, self.mesh_dict['mesh_pres'],
                                                          Gm_vrh, Eg, Pg, resdryframe.phi, c=resdryframe.c)
 
+        #fluid substitution and and impedance calculation
         mesh_satk = gassmann_dry2fluid(self.mesh_dict['mesh_dryk'],Km_vrh,mesh_mfluidK,resdryframe.phi)
         mesh_rhob = resdryframe.rho + mesh_mfluidRho*resdryframe.phi
         self.mesh_dict['mesh_pimp'] = calcVelp(mesh_satk, self.mesh_dict['mesh_dryg'], mesh_rhob) * mesh_rhob
         self.mesh_dict['mesh_dpimp'] = 100.0 * (self.mesh_dict['mesh_pimp'] - init_imp)/init_imp
+        self.updateImpRanges()
 
         self.toggleAbsRel('active',1,1)
+        self.mesh_dict['image'] = self.mesh_dict['mesh_dpimp']
 
+        # update constant impedance and saturation plots
+        self.cur_pres = self.init_pres;
+        self.cur_sat = self.init_sw
+        self.var_dict['cur_pres'] = [self.init_pres]
+        self.var_dict['cur_sat'] = [self.init_sw]
+        self.clickReset()
+
+        #push updates to keys in columnardatasource models
         for key in self.mesh_keys:
             self.CDS_mesh.data[key] = [self.mesh_dict[key].tolist()]
         for key in self.vec_keys:
             self.CDS_vec.data[key] = self.vec_dict[key].tolist()
         for key in self.patch_keys:
             self.CDS_pat.data[key] = self.patch_dict[key]
-
-        print(self.patch_dict)
-        self.cur_pres = self.init_pres; self.cur_sat = self.init_sw
+        for key in self.var_keys:
+            self.CDS_var.data[key] = self.var_dict[key]
         self.updateCImpAndSat()
 
     def toggleAbsRel(self,attribute,old,new):
-        print(attribute,old,new)
         if new == 0:
             self.toggleAbs = True
         if new == 1:
             self.toggleAbs = False
-
-        if self.toggleAbs:
+        if self.toggleAbs:  #Absolute Values of Impedance
             self.mesh_dict['image'] = self.mesh_dict['mesh_pimp']
             self.figCPres.yaxis.axis_label = "Impedance"
             self.figCSat.yaxis.axis_label = "Impedance"
-        else:
+            #self.figDImp.image.color_mapper = self.icm
+            self.dicm.palette = crainbow
+            self.dicm.low = self.var_dict['low_pimp'][0]; self.dicm.high = self.var_dict['high_pimp'][0]
+        else:               # % change values of impedance
             self.mesh_dict['image'] = self.mesh_dict['mesh_dpimp']
             self.figCPres.yaxis.axis_label = "Delta Imp (%)"
             self.figCSat.yaxis.axis_label = "Delta Imp (%)"
+            self.dicm.palette=cbwr
+            self.dicm.low = -1*self.var_dict['amax_dpimp'][0]; self.dicm.high = self.var_dict['amax_dpimp'][0]
 
-        #self.figCPres.update()
-        #self.figCSat.update()
         self.CDS_mesh.data['image']= [self.mesh_dict['image'].tolist()]
         self.updateCImpAndSat()
 
@@ -244,6 +291,14 @@ class widgetFDI(object):
     def updateCSat(self,attribute,old,new):
         self.cur_sat=new
         self.updateCImpAndSat()
+
+    def clickReset(self):
+        self.cur_pres=self.init_pres
+        self.cur_sat=self.init_sw
+        self.slidePres.value=self.cur_pres
+        self.slideSat.value=self.cur_sat
+        self.updateCImpAndSat()
+        print(self.CDS_vec.data['cpres'])
 
 if __name__ == "__main__":
 
@@ -271,11 +326,8 @@ if __name__ == "__main__":
     rock = structRock(dryframe,fluid)
     rock.calcGassmann(), rock.calcDensity(), rock.calcElastic()
 
-    #data_mesh, data_vec = createDataTables(plot_scale)
-    #fdi_layout = layoutDImp(data_mesh,data_vec,presmin,presmax,init_Pres,sw,plot_scale)
     fdi = widgetFDI(plot_scale, presmin, presmax)
     fdi.updateModel(dryframe,fluid,presmin,presmax,init_imp=rock.pimp)
-    #update_c_imp_sat(data_mesh,data_vec,init_Pres,sw)
 
     show(fdi.layout)
 

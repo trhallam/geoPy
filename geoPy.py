@@ -29,12 +29,12 @@ from bokeh.io import curdoc
 from bokeh.models.widgets import DataTable, TableColumn, Select, Tabs, Panel, Slider, Div
 
 from data.structLith import structMineral, structFluid, structDryFrame, structRock
-from charts import fdi
+from layouts import fdi
 
 # Initial Data
-datarocks = pd.read_csv(join(dirname(__file__), 'geoPy_rocks.csv'),skipinitialspace=True)
-datafluids = pd.read_csv(join(dirname(__file__),'geoPy_fluids.csv'),skipinitialspace=True)
-datapres = pd.read_csv(join(dirname(__file__),'geoPy_pres.csv'),skipinitialspace=True)
+datarocks = pd.read_csv(join(dirname(__file__), 'inputs\geoPy_rocks.csv'),skipinitialspace=True)
+datafluids = pd.read_csv(join(dirname(__file__),'inputs\geoPy_fluids.csv'),skipinitialspace=True)
+datapres = pd.read_csv(join(dirname(__file__),'inputs\geoPy_pres.csv'),skipinitialspace=True)
 idepth = 3180 #mTVDSS
 pagewidth = 1000 #pixels
 presmin=5; presmax = 35;

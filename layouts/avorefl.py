@@ -24,7 +24,7 @@ import numpy as np
 
 def createDataTable(min,max,nang):
     '''
-    Creates a data table usking bokeh models so that charts can be interactively updated.
+    Creates a data table usking bokeh models so that layouts can be interactively updated.
     :param min: Minimum angle to plot.
     :param max: Maximum angle to plot.
     :param nang: Number of angles between but including min and max.
