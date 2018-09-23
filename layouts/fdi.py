@@ -206,7 +206,7 @@ class widgetFDI(object):
 
         #setup water saturation variations
         kw, ko, kg = resfluid.getKs(); rhow, rhoo, rhog = resfluid.getRhos(); swi, soi, sgi = resfluid.getSats()
-        self.init_sw = swi; print(self.init_sw, soi, sgi)
+        self.init_sw = swi
         pc_hyd_oil = soi / (1-swi); pc_hyd_gas = sgi / (1-swi)  #work out oil and gas pc
         dsw = 1.0 / (self.plot_scale - 1)                       # delta sw for plotting
         self.vec_dict['sw'] = np.arange(0, 1 + dsw, dsw)        # saturation water
@@ -298,7 +298,6 @@ class widgetFDI(object):
         self.slidePres.value=self.cur_pres
         self.slideSat.value=self.cur_sat
         self.updateCImpAndSat()
-        print(self.CDS_vec.data['cpres'])
 
 if __name__ == "__main__":
 
